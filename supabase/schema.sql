@@ -69,14 +69,7 @@ CREATE TABLE IF NOT EXISTS contract_sold_snapshot (
 
 CREATE INDEX IF NOT EXISTS idx_css_so_hd ON contract_sold_snapshot (so_hd);
 
--- 5. App-specific user roles (references shared.users)
-CREATE TABLE IF NOT EXISTS contract_users (
-    username    TEXT PRIMARY KEY,
-    app_role    TEXT NOT NULL DEFAULT 'am' CHECK (app_role IN ('admin', 'manager', 'am')),
-    created_at  TIMESTAMPTZ DEFAULT now()
-);
-
--- 6. Useful view: contracts with days remaining
+-- 5. Useful view: contracts with days remaining
 CREATE OR REPLACE VIEW contract_expiry_view AS
 SELECT
     c.ma_hd,

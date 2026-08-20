@@ -74,26 +74,19 @@ const MIEN_NORM: Record<string, string> = {
 type Permission = {
   canWrite: boolean;
   filterMien: string | null;
-  app_role: string;
+  role: string;
 };
 
-async function getPermission(session: Session, admin: SupabaseClient): Promise<Permission> {
-  const { data: cu } = await admin
-    .from("contract_users")
-    .select("app_role")
-    .eq("username", session.username)
-    .maybeSingle();
-
-  const appRole = cu?.app_role || "am";
-
-  switch (appRole) {
+function getPermission(session: Session): Permission {
+  switch (session.role) {
     case "admin":
-      return { canWrite: true, filterMien: null, app_role: "admin" };
+      return { canWrite: true, filterMien: null, role: "admin" };
     case "manager":
-      return { canWrite: false, filterMien: null, app_role: "manager" };
+    case "product_manager":
+      return { canWrite: false, filterMien: null, role: session.role };
     default: {
       const m = MIEN_NORM[session.mien] ?? session.mien ?? null;
-      return { canWrite: false, filterMien: m, app_role: "am" };
+      return { canWrite: false, filterMien: m, role: session.role };
     }
   }
 }
@@ -118,8 +111,7 @@ async function handleAction(
         ok: true,
         username: session.username,
         ho_ten: session.ho_ten,
-        role: session.role,
-        app_role: perm.app_role,
+        role: perm.role,
         mien: session.mien,
         bu: session.bu,
         scope: session.scope,
@@ -354,7 +346,7 @@ async function handleAction(
 
     // ── update-config (admin only) ───────────────────────────────────────
     case "update-config": {
-      if (perm.app_role !== "admin") return { ok: false, error: "no permission" };
+      if (perm.role !== "admin") return { ok: false, error: "no permission" };
       const { config } = payload || {};
       if (!config || typeof config !== "object") return { ok: false, error: "missing config" };
 
@@ -368,8 +360,10 @@ async function handleAction(
     }
 
     // ── sync-invoices ────────────────────────────────────────────────────
+    // Invoice table: app_sale.hoa_don_bovattu
+    // Join: so_hd + ma_vat_tu (invoice) = so_hd + ma_chung (contract)
     case "sync-invoices": {
-      if (perm.app_role !== "admin") return { ok: false, error: "no permission" };
+      if (perm.role !== "admin") return { ok: false, error: "no permission" };
 
       const { data: cfgRows } = await admin.from("contract_alert_config").select("key, value");
       const cfg: Record<string, any> = {};
@@ -389,44 +383,53 @@ async function handleAction(
       const soHdList = [...new Set((contracts || []).map(c => c.so_hd).filter(Boolean))];
       if (soHdList.length === 0) return { ok: true, updated: 0 };
 
-      // Fetch total sold per (so_hd, ma_san_pham)
-      const { data: invoiceTotal, error: e1 } = await admin
-        .schema("app_sale").from("hoa_don_bovattu")
-        .select("so_hd, ma_san_pham, so_luong")
-        .in("so_hd", soHdList);
-      if (e1) return { ok: false, error: "invoice query failed: " + e1.message };
+      // Batch .in() queries to avoid PostgREST URL length limit
+      const IN_BATCH = 50;
+      const allInvoiceTotal: any[] = [];
+      const allInvoiceRecent: any[] = [];
 
-      // Fetch recent sales (last N months) for average
-      const { data: invoiceRecent, error: e2 } = await admin
-        .schema("app_sale").from("hoa_don_bovattu")
-        .select("so_hd, ma_san_pham, so_luong, ngay_tai_leu")
-        .in("so_hd", soHdList)
-        .gte("ngay_tai_leu", sinceStr);
-      if (e2) return { ok: false, error: "recent invoice query failed: " + e2.message };
+      for (let i = 0; i < soHdList.length; i += IN_BATCH) {
+        const batch = soHdList.slice(i, i + IN_BATCH);
 
-      // Aggregate totals
+        const { data: d1, error: e1 } = await admin
+          .schema("app_sale").from("hoa_don_bovattu")
+          .select("so_hd, ma_vat_tu, so_luong")
+          .in("so_hd", batch);
+        if (e1) return { ok: false, error: "invoice query failed: " + e1.message };
+        if (d1) allInvoiceTotal.push(...d1);
+
+        const { data: d2, error: e2 } = await admin
+          .schema("app_sale").from("hoa_don_bovattu")
+          .select("so_hd, ma_vat_tu, so_luong")
+          .in("so_hd", batch)
+          .gte("ngay_tai_lieu", sinceStr);
+        if (e2) return { ok: false, error: "recent invoice query failed: " + e2.message };
+        if (d2) allInvoiceRecent.push(...d2);
+      }
+
+      // Aggregate totals by (so_hd, ma_vat_tu)
       const totals: Record<string, number> = {};
-      for (const inv of invoiceTotal || []) {
-        const key = `${inv.so_hd}|||${inv.ma_san_pham}`;
+      for (const inv of allInvoiceTotal) {
+        const key = `${inv.so_hd}|||${inv.ma_vat_tu}`;
         totals[key] = (totals[key] || 0) + (Number(inv.so_luong) || 0);
       }
 
       // Aggregate recent for avg daily
       const recents: Record<string, number> = {};
-      for (const inv of invoiceRecent || []) {
-        const key = `${inv.so_hd}|||${inv.ma_san_pham}`;
+      for (const inv of allInvoiceRecent) {
+        const key = `${inv.so_hd}|||${inv.ma_vat_tu}`;
         recents[key] = (recents[key] || 0) + (Number(inv.so_luong) || 0);
       }
 
-      // Upsert snapshot
+      // Upsert snapshot (ma_chung = ma_vat_tu from invoice)
       const rows = Object.keys(totals).map(key => {
-        const [so_hd, ma_ncc] = key.split("|||");
+        const [so_hd, ma_chung] = key.split("|||");
         const sold = totals[key] || 0;
         const recentSold = recents[key] || 0;
         const avgDaily = totalDays > 0 ? recentSold / totalDays : 0;
         return {
           so_hd,
-          ma_ncc,
+          ma_chung,
           so_luong_ban: sold,
           avg_daily_3m: Math.round(avgDaily * 100) / 100,
           synced_at: new Date().toISOString(),
@@ -434,12 +437,12 @@ async function handleAction(
       });
 
       let updated = 0;
-      const BATCH = 500;
-      for (let i = 0; i < rows.length; i += BATCH) {
-        const batch = rows.slice(i, i + BATCH);
+      const UPSERT_BATCH = 500;
+      for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
+        const batch = rows.slice(i, i + UPSERT_BATCH);
         const { error } = await admin
           .from("contract_sold_snapshot")
-          .upsert(batch, { onConflict: "so_hd,ma_ncc" });
+          .upsert(batch, { onConflict: "so_hd,ma_chung" });
         if (error) return { ok: false, error: "upsert failed: " + error.message };
         updated += batch.length;
       }
@@ -474,7 +477,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
-  const perm = await getPermission(session, admin);
+  const perm = getPermission(session);
 
   try {
     const result = await handleAction(action, payload || {}, session, perm, admin);

@@ -13,7 +13,7 @@
   ];
 
   function roleBadge(role) {
-    const colors = { admin: "#7c3aed", manager: "#0891b2", pm: "#0891b2", am: "#ea580c" };
+    const colors = { admin: "#7c3aed", manager: "#0891b2", product_manager: "#0891b2", area_manager: "#ea580c", ps: "#16a34a" };
     const bg = colors[role] || "#6b7280";
     return h("span", {
       className: "text-xs text-white px-2 py-0.5 rounded-full font-medium",
@@ -23,7 +23,7 @@
 
   function Shell({ user, onLogout }) {
     const path = R.useRoute();
-    const visibleNav = NAV.filter(n => !n.roles || n.roles.includes(user.app_role));
+    const visibleNav = NAV.filter(n => !n.roles || n.roles.includes(user.role));
     const Screen = R.get(path);
     const initials = (user.ho_ten || user.username || "?").split(" ").map(w => w[0]).join("").slice(-2).toUpperCase();
 
@@ -40,7 +40,7 @@
               h("h1", { className: "text-base font-bold leading-tight", style: { color: "#1c1e21" } }, "QUẢN LÝ HỢP ĐỒNG"),
               h("div", { className: "flex items-center gap-2 text-xs", style: { color: "#65676b" } },
                 h("span", null, user.ho_ten || user.username),
-                roleBadge(user.app_role)
+                roleBadge(user.role)
               )
             )
           ),
@@ -99,7 +99,7 @@
         api("whoami").then(me => {
           setUser({
             ...cached,
-            app_role: me.app_role || cached.app_role || "am",
+            role: me.role || cached.role,
             mien: me.mien || cached.mien,
           });
         }).catch(() => {

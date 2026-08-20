@@ -48,7 +48,6 @@
           username: me.username || username.trim(),
           ho_ten: me.ho_ten || me.ho_va_ten || username.trim(),
           role: me.role,
-          app_role: me.app_role || "am",
           scope: me.scope,
           bu: me.bu,
           mien: me.mien,

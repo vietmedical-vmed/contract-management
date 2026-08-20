@@ -58,7 +58,7 @@
       }
     }
 
-    if (user.app_role !== "admin") {
+    if (user.role !== "admin") {
       return el("div", { className: "text-center py-20" },
         el("p", { className: "text-gray-400 text-lg" }, "Bạn không có quyền truy cập trang này"),
         el("p", { className: "text-gray-400 text-sm mt-2" }, "Chỉ Admin mới có thể thay đổi cấu hình cảnh báo")
