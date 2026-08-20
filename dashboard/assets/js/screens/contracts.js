@@ -60,7 +60,7 @@
     },
       el("div", {
         className: "bg-white rounded-xl shadow-2xl w-full max-h-[85vh] flex flex-col",
-        style: { maxWidth: "1100px", margin: "16px" }
+        style: { maxWidth: "1300px", margin: "16px" }
       },
         // Header
         el("div", { className: "flex items-center justify-between px-5 py-3 border-b shrink-0", style: { borderColor: "#f0f2f5" } },

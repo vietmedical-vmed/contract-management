@@ -175,7 +175,7 @@ async function handleAction(
         if (s) q = q.or(`ma_hd.ilike.%${s}%,so_hd.ilike.%${s}%,ten_kh.ilike.%${s}%`);
       }
 
-      q = q.order("days_remaining", { ascending: true }).order("status_order", { ascending: true }).order("ngay_ky", { ascending: true }).range(from, to);
+      q = q.order("status_order", { ascending: true }).order("days_remaining", { ascending: true }).order("ngay_ky", { ascending: true }).range(from, to);
 
       const { data, count, error } = await q;
       if (error) return { ok: false, error: error.message };
