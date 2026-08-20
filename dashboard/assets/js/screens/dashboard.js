@@ -83,18 +83,18 @@
 
     return el("div", { className: "space-y-6" },
       el("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" },
-        el(KPICard, { label: "Tổng hợp đồng", value: data.total_contracts, color: "#1877f2", sub: "Đang hiệu lực" }),
+        el(KPICard, { label: "Tổng hợp đồng", value: data.total_active_contracts, color: "#1877f2", sub: "Sắp hết hạn + Còn hạn" }),
         el(KPICard, {
           label: "HĐ sắp hết hạn", value: data.expiring_count, color: "#f59e0b",
-          sub: "Trong 30 ngày tới",
+          sub: "Trong " + (data.max_warn_days || 30) + " ngày tới",
           onClick: () => R.navigate("/alerts")
         }),
         el(KPICard, {
           label: "SP sắp hết thầu", value: data.low_quantity_count, color: "#dc2626",
-          sub: "Cần chú ý",
+          sub: "Trong " + (data.max_qty_warn_days || 20) + " ngày tới",
           onClick: () => R.navigate("/alerts")
         }),
-        el(KPICard, { label: "Tổng sản phẩm", value: data.total_items, color: "#22c55e", sub: "Trong tất cả HĐ" }),
+        el(KPICard, { label: "HĐ hết hạn trong năm", value: data.fiscal_year_expiry_count, color: "#8b5cf6", sub: "Năm tài chính (T4–T3)" }),
       ),
 
       el("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" },

@@ -175,7 +175,7 @@ async function handleAction(
         if (s) q = q.or(`ma_hd.ilike.%${s}%,so_hd.ilike.%${s}%,ten_kh.ilike.%${s}%`);
       }
 
-      q = q.order("days_remaining", { ascending: true }).range(from, to);
+      q = q.order("status_order", { ascending: true }).order("ngay_ky", { ascending: true }).range(from, to);
 
       const { data, count, error } = await q;
       if (error) return { ok: false, error: error.message };
@@ -273,24 +273,29 @@ async function handleAction(
       const warnDays = cfg.contract_warn_days || [30, 15];
       const qtyMult = cfg.quantity_multiplier || [20, 10];
       const maxWarn = Math.max(...warnDays);
+      const maxQtyWarn = Math.max(...qtyMult);
 
-      // Total contracts
-      let cq = admin.from("contract_contracts").select("ma_hd", { count: "exact", head: true });
-      if (perm.filterMien) cq = cq.eq("mien", perm.filterMien);
-      const { count: totalContracts } = await cq;
+      // Active contracts only (Sắp hết hạn + Còn hạn, i.e. days_remaining > 0)
+      let aq = admin.from("contract_expiry_view")
+        .select("ma_hd", { count: "exact", head: true })
+        .gt("days_remaining", 0);
+      if (perm.filterMien) aq = aq.eq("mien", perm.filterMien);
+      const { count: totalActive } = await aq;
 
-      // Total items
-      let iq = admin.from("contract_items").select("id", { count: "exact", head: true });
-      if (perm.filterMien) {
-        const { data: mienContracts } = await admin
-          .from("contract_contracts")
-          .select("ma_hd")
-          .eq("mien", perm.filterMien);
-        if (mienContracts) {
-          iq = iq.in("ma_hd", mienContracts.map(c => c.ma_hd));
-        }
-      }
-      const { count: totalItems } = await iq;
+      // Fiscal year (April → March): contracts expiring within the current FY
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      const fyStart = month >= 4 ? `${year}-04-01` : `${year - 1}-04-01`;
+      const fyEnd = month >= 4 ? `${year + 1}-03-31` : `${year}-03-31`;
+
+      let fyq = admin.from("contract_contracts")
+        .select("ma_hd", { count: "exact", head: true })
+        .not("thoi_han", "is", null)
+        .gte("thoi_han", fyStart)
+        .lte("thoi_han", fyEnd);
+      if (perm.filterMien) fyq = fyq.eq("mien", perm.filterMien);
+      const { count: fiscalYearCount } = await fyq;
 
       // Expiring contracts
       let eq = admin
@@ -312,7 +317,6 @@ async function handleAction(
       if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
       const { data: itemsRaw } = await qq;
 
-      const maxQtyWarn = Math.max(...qtyMult);
       const quantityAlerts: any[] = [];
       for (const it of itemsRaw || []) {
         const conLai = it.so_luong_con_lai ?? 0;
@@ -327,10 +331,12 @@ async function handleAction(
 
       return {
         ok: true,
-        total_contracts: totalContracts || 0,
-        total_items: totalItems || 0,
+        total_active_contracts: totalActive || 0,
         expiring_count: (expiryAlerts || []).length,
         low_quantity_count: quantityAlerts.length,
+        fiscal_year_expiry_count: fiscalYearCount || 0,
+        max_warn_days: maxWarn,
+        max_qty_warn_days: maxQtyWarn,
         expiry_alerts: (expiryAlerts || []).slice(0, 10),
         quantity_alerts: quantityAlerts.slice(0, 10),
       };

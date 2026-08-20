@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS contract_sold_snapshot (
 
 CREATE INDEX IF NOT EXISTS idx_css_so_hd ON contract_sold_snapshot (so_hd);
 
--- 5. Useful view: contracts with days remaining
+-- 5. Useful view: contracts with days remaining + status_order for sorting
 CREATE OR REPLACE VIEW contract_expiry_view AS
 SELECT
     c.ma_hd,
@@ -81,10 +81,14 @@ SELECT
     c.thoi_han,
     (c.thoi_han - CURRENT_DATE) AS days_remaining,
     c.ten_ps,
-    c.ten_so
+    c.ten_so,
+    CASE
+        WHEN (c.thoi_han - CURRENT_DATE) > 0 AND (c.thoi_han - CURRENT_DATE) <= 30 THEN 1
+        WHEN (c.thoi_han - CURRENT_DATE) > 30 THEN 2
+        ELSE 3
+    END AS status_order
 FROM contract_contracts c
-WHERE c.thoi_han IS NOT NULL
-ORDER BY days_remaining ASC;
+WHERE c.thoi_han IS NOT NULL;
 
 -- 7. Useful view: items with remaining quantity
 CREATE OR REPLACE VIEW contract_items_remaining_view AS
@@ -99,6 +103,7 @@ SELECT
     ci.ma_ncc,
     ci.ten_hang_hoa,
     ci.so_luong AS so_luong_hd,
+    ci.don_gia,
     COALESCE(css.so_luong_ban, 0) AS so_luong_da_ban,
     ci.so_luong - COALESCE(css.so_luong_ban, 0) AS so_luong_con_lai,
     COALESCE(css.avg_daily_3m, 0) AS avg_daily_3m,

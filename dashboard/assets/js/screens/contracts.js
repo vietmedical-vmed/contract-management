@@ -6,6 +6,7 @@
 
   function fmt(n) { return (n || 0).toLocaleString("vi-VN"); }
   function fmtDate(d) { return d ? new Date(d).toLocaleDateString("vi-VN") : "—"; }
+  function fmtMoney(n) { return n ? n.toLocaleString("vi-VN") + " đ" : "—"; }
 
   function statusBadge(daysRemaining) {
     if (daysRemaining === null || daysRemaining === undefined) return el("span", { className: "text-xs text-gray-400" }, "—");
@@ -13,6 +14,117 @@
     if (daysRemaining <= 15) return el("span", { className: "px-2 py-0.5 rounded-full text-xs font-medium text-white", style: { background: "#dc2626" } }, daysRemaining + " ngày");
     if (daysRemaining <= 30) return el("span", { className: "px-2 py-0.5 rounded-full text-xs font-medium text-white", style: { background: "#f59e0b" } }, daysRemaining + " ngày");
     return el("span", { className: "text-xs font-medium", style: { color: "#22c55e" } }, daysRemaining + " ngày");
+  }
+
+  function statusLabel(daysRemaining) {
+    if (daysRemaining === null || daysRemaining === undefined) return "—";
+    if (daysRemaining <= 0) return "Hết hạn";
+    if (daysRemaining <= 30) return "Sắp hết hạn";
+    return "Còn hạn";
+  }
+
+  function daysSupplyBadge(conLai, avgDaily) {
+    if (!avgDaily || avgDaily <= 0) return el("span", { className: "text-xs text-gray-400" }, "—");
+    const days = Math.floor(conLai / avgDaily);
+    if (days <= 10) return el("span", { className: "px-2 py-0.5 rounded-full text-xs font-medium text-white", style: { background: "#dc2626" } }, days + " ngày");
+    if (days <= 20) return el("span", { className: "px-2 py-0.5 rounded-full text-xs font-medium text-white", style: { background: "#f59e0b" } }, days + " ngày");
+    return el("span", { className: "text-xs font-medium", style: { color: "#22c55e" } }, days + " ngày");
+  }
+
+  function ItemsModal({ maHd, onClose }) {
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [contractInfo, setContractInfo] = useState(null);
+
+    useEffect(() => {
+      api("contract-detail", { ma_hd: maHd })
+        .then(res => {
+          setItems(res.items || []);
+          setContractInfo(res.contract || null);
+        })
+        .catch(err => setError(err.message))
+        .finally(() => setLoading(false));
+    }, [maHd]);
+
+    useEffect(() => {
+      function onKey(e) { if (e.key === "Escape") onClose(); }
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, [onClose]);
+
+    return el("div", {
+      className: "fixed inset-0 z-50 flex items-center justify-center",
+      style: { background: "rgba(0,0,0,0.5)" },
+      onClick: e => { if (e.target === e.currentTarget) onClose(); }
+    },
+      el("div", {
+        className: "bg-white rounded-xl shadow-2xl w-full max-h-[85vh] flex flex-col",
+        style: { maxWidth: "960px", margin: "16px" }
+      },
+        // Header
+        el("div", { className: "flex items-center justify-between px-5 py-3 border-b shrink-0", style: { borderColor: "#f0f2f5" } },
+          el("div", null,
+            el("h3", { className: "font-bold text-base", style: { color: "#1c1e21" } }, "Sản phẩm hợp đồng " + maHd),
+            contractInfo && el("p", { className: "text-xs mt-0.5", style: { color: "#65676b" } },
+              contractInfo.ten_kh + " · " + statusLabel(contractInfo.thoi_han ? Math.ceil((new Date(contractInfo.thoi_han) - new Date()) / 86400000) : null)
+            )
+          ),
+          el("button", {
+            onClick: onClose,
+            className: "w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-lg",
+            style: { color: "#65676b" }
+          }, "✕")
+        ),
+
+        // Body
+        el("div", { className: "overflow-auto flex-1" },
+          loading
+            ? el("div", { className: "text-center py-12 text-gray-400" }, "Đang tải...")
+            : error
+              ? el("div", { className: "text-center py-12 text-red-500" }, "Lỗi: " + error)
+              : items.length === 0
+                ? el("div", { className: "text-center py-12 text-gray-400" }, "Không có sản phẩm")
+                : el("table", { className: "w-full text-sm" },
+                    el("thead", null,
+                      el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
+                        ["#", "Mã chung", "Mã NCC", "Đơn giá", "SL thầu", "SL bán", "SL thầu còn lại", "Cảnh báo"].map(h =>
+                          el("th", {
+                            key: h,
+                            className: "px-3 py-2.5 text-left font-medium whitespace-nowrap sticky top-0",
+                            style: { color: "#65676b", background: "#f8f9fa" }
+                          }, h)
+                        )
+                      )
+                    ),
+                    el("tbody", null,
+                      items.map((it, i) => {
+                        const conLai = (it.so_luong_hd || 0) - (it.so_luong_da_ban || 0);
+                        return el("tr", {
+                          key: it.id || i,
+                          className: "border-b hover:bg-gray-50",
+                          style: { borderColor: "#f0f2f5" }
+                        },
+                          el("td", { className: "px-3 py-2 text-gray-400" }, i + 1),
+                          el("td", { className: "px-3 py-2 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
+                          el("td", { className: "px-3 py-2 whitespace-nowrap" }, it.ma_ncc || "—"),
+                          el("td", { className: "px-3 py-2 text-right whitespace-nowrap" }, fmtMoney(it.don_gia)),
+                          el("td", { className: "px-3 py-2 text-right" }, fmt(it.so_luong_hd)),
+                          el("td", { className: "px-3 py-2 text-right" }, fmt(it.so_luong_da_ban || 0)),
+                          el("td", { className: "px-3 py-2 text-right font-medium" }, fmt(conLai)),
+                          el("td", { className: "px-3 py-2 whitespace-nowrap" }, daysSupplyBadge(conLai, it.avg_daily_3m))
+                        );
+                      })
+                    )
+                  )
+        ),
+
+        // Footer
+        el("div", { className: "px-5 py-2.5 border-t text-xs shrink-0", style: { borderColor: "#f0f2f5", color: "#65676b" } },
+          "Tổng: " + items.length + " sản phẩm · Cảnh báo = SL thầu còn lại ÷ TB bán/ngày (3 tháng)"
+        )
+      )
+    );
   }
 
   function ContractsScreen({ user }) {
@@ -25,7 +137,8 @@
     const [filterStatus, setFilterStatus] = useState("all");
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
-    const PAGE_SIZE = 50;
+    const [popupMaHd, setPopupMaHd] = useState(null);
+    const PAGE_SIZE = 30;
 
     const load = useCallback(() => {
       setLoading(true);
@@ -44,6 +157,8 @@
     const khayOptions = [...new Set(contracts.map(c => c.khay).filter(Boolean))].sort();
 
     return el("div", { className: "space-y-4" },
+      popupMaHd && el(ItemsModal, { maHd: popupMaHd, onClose: () => setPopupMaHd(null) }),
+
       // Filters
       el("div", { className: "bg-white rounded-xl shadow-sm p-4" },
         el("div", { className: "flex flex-wrap gap-3 items-end" },
@@ -119,7 +234,11 @@
                           style: { borderColor: "#f0f2f5" },
                           onClick: () => R.navigate("/contract/" + encodeURIComponent(c.ma_hd))
                         },
-                          el("td", { className: "px-3 py-2.5 font-medium whitespace-nowrap", style: { color: "#1877f2" } }, c.ma_hd),
+                          el("td", {
+                            className: "px-3 py-2.5 font-bold whitespace-nowrap cursor-pointer hover:underline",
+                            style: { color: "#1877f2" },
+                            onClick: e => { e.stopPropagation(); setPopupMaHd(c.ma_hd); }
+                          }, c.ma_hd),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
                           el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.mien || "—"),
