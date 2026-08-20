@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.local
+supabase/seed_data.sql
+supabase/.temp/
+.claude/
+*.pyc
+__pycache__/
+~$*.xlsx
