@@ -367,7 +367,7 @@ async function handleAction(
 
     // ── sync-invoices ────────────────────────────────────────────────────
     // Invoice table: app_sale.hoa_don_bovattu
-    // Join: so_hd + ma_vat_tu (invoice) = so_hd + ma_ncc (contract)
+    // Join: so_hd + ma_san_pham (invoice) = so_hd + ma_ncc (contract)
     case "sync-invoices": {
       if (perm.role !== "admin") return { ok: false, error: "no permission" };
 
@@ -399,35 +399,35 @@ async function handleAction(
 
         const { data: d1, error: e1 } = await admin
           .schema("app_sale").from("hoa_don_bovattu")
-          .select("so_hd, ma_vat_tu, so_luong")
+          .select("so_hd, ma_san_pham, so_luong")
           .in("so_hd", batch);
         if (e1) return { ok: false, error: "invoice query failed: " + e1.message };
         if (d1) allInvoiceTotal.push(...d1);
 
         const { data: d2, error: e2 } = await admin
           .schema("app_sale").from("hoa_don_bovattu")
-          .select("so_hd, ma_vat_tu, so_luong")
+          .select("so_hd, ma_san_pham, so_luong")
           .in("so_hd", batch)
           .gte("ngay_tai_lieu", sinceStr);
         if (e2) return { ok: false, error: "recent invoice query failed: " + e2.message };
         if (d2) allInvoiceRecent.push(...d2);
       }
 
-      // Aggregate totals by (so_hd, ma_vat_tu)
+      // Aggregate totals by (so_hd, ma_san_pham)
       const totals: Record<string, number> = {};
       for (const inv of allInvoiceTotal) {
-        const key = `${inv.so_hd}|||${inv.ma_vat_tu}`;
+        const key = `${inv.so_hd}|||${inv.ma_san_pham}`;
         totals[key] = (totals[key] || 0) + (Number(inv.so_luong) || 0);
       }
 
       // Aggregate recent for avg daily
       const recents: Record<string, number> = {};
       for (const inv of allInvoiceRecent) {
-        const key = `${inv.so_hd}|||${inv.ma_vat_tu}`;
+        const key = `${inv.so_hd}|||${inv.ma_san_pham}`;
         recents[key] = (recents[key] || 0) + (Number(inv.so_luong) || 0);
       }
 
-      // Upsert snapshot (ma_ncc = ma_vat_tu from invoice)
+      // Upsert snapshot (ma_ncc = ma_san_pham from invoice)
       const rows = Object.keys(totals).map(key => {
         const [so_hd, ma_ncc] = key.split("|||");
         const sold = totals[key] || 0;
