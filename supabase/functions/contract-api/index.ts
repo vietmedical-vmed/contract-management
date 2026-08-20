@@ -367,7 +367,7 @@ async function handleAction(
 
     // ── sync-invoices ────────────────────────────────────────────────────
     // Invoice table: app_sale.hoa_don_bovattu
-    // Join: so_hd + ma_vat_tu (invoice) = so_hd + ma_chung (contract)
+    // Join: so_hd + ma_vat_tu (invoice) = so_hd + ma_ncc (contract)
     case "sync-invoices": {
       if (perm.role !== "admin") return { ok: false, error: "no permission" };
 
@@ -427,15 +427,15 @@ async function handleAction(
         recents[key] = (recents[key] || 0) + (Number(inv.so_luong) || 0);
       }
 
-      // Upsert snapshot (ma_chung = ma_vat_tu from invoice)
+      // Upsert snapshot (ma_ncc = ma_vat_tu from invoice)
       const rows = Object.keys(totals).map(key => {
-        const [so_hd, ma_chung] = key.split("|||");
+        const [so_hd, ma_ncc] = key.split("|||");
         const sold = totals[key] || 0;
         const recentSold = recents[key] || 0;
         const avgDaily = totalDays > 0 ? recentSold / totalDays : 0;
         return {
           so_hd,
-          ma_chung,
+          ma_ncc,
           so_luong_ban: sold,
           avg_daily_3m: Math.round(avgDaily * 100) / 100,
           synced_at: new Date().toISOString(),
@@ -448,7 +448,7 @@ async function handleAction(
         const batch = rows.slice(i, i + UPSERT_BATCH);
         const { error } = await admin
           .from("contract_sold_snapshot")
-          .upsert(batch, { onConflict: "so_hd,ma_chung" });
+          .upsert(batch, { onConflict: "so_hd,ma_ncc" });
         if (error) return { ok: false, error: "upsert failed: " + error.message };
         updated += batch.length;
       }
