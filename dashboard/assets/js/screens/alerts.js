@@ -66,12 +66,15 @@
                   expiry.map((a, i) =>
                     el("tr", {
                       key: i,
-                      className: "border-b cursor-pointer hover:bg-blue-50",
-                      style: { borderColor: "#f0f2f5" },
-                      onClick: () => R.navigate("/contract/" + encodeURIComponent(a.ma_hd))
+                      className: "border-b hover:bg-gray-50",
+                      style: { borderColor: "#f0f2f5" }
                     },
                       el("td", { className: "px-3 py-2.5" }, urgencyBadge(a.level)),
-                      el("td", { className: "px-3 py-2.5 font-medium whitespace-nowrap", style: { color: "#1877f2" } }, a.ma_hd),
+                      el("td", {
+                        className: "px-3 py-2.5 font-bold whitespace-nowrap cursor-pointer hover:underline",
+                        style: { color: "#1877f2" },
+                        onClick: () => R.navigate("/contract/" + encodeURIComponent(a.ma_hd))
+                      }, a.ma_hd),
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, a.so_hd || "—"),
                       el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, a.ten_kh || "—"),
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, a.mien || "—"),
@@ -102,12 +105,15 @@
                   quantity.map((a, i) =>
                     el("tr", {
                       key: i,
-                      className: "border-b cursor-pointer hover:bg-blue-50",
-                      style: { borderColor: "#f0f2f5" },
-                      onClick: () => R.navigate("/contract/" + encodeURIComponent(a.ma_hd))
+                      className: "border-b hover:bg-gray-50",
+                      style: { borderColor: "#f0f2f5" }
                     },
                       el("td", { className: "px-3 py-2.5" }, urgencyBadge(a.level)),
-                      el("td", { className: "px-3 py-2.5 font-medium whitespace-nowrap", style: { color: "#1877f2" } }, a.ma_hd),
+                      el("td", {
+                        className: "px-3 py-2.5 font-bold whitespace-nowrap cursor-pointer hover:underline",
+                        style: { color: "#1877f2" },
+                        onClick: () => R.navigate("/contract/" + encodeURIComponent(a.ma_hd))
+                      }, a.ma_hd),
                       el("td", { className: "px-3 py-2.5 max-w-[200px] truncate" }, a.ten_kh || "—"),
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, a.ma_ncc || "—"),
                       el("td", { className: "px-3 py-2.5 max-w-[200px] truncate" }, a.ten_hang_hoa || "—"),

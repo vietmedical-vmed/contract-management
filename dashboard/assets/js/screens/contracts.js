@@ -231,14 +231,13 @@
                     : contracts.map(c =>
                         el("tr", {
                           key: c.ma_hd,
-                          className: "border-b cursor-pointer hover:bg-blue-50 transition",
-                          style: { borderColor: "#f0f2f5" },
-                          onClick: () => R.navigate("/contract/" + encodeURIComponent(c.ma_hd))
+                          className: "border-b hover:bg-gray-50 transition",
+                          style: { borderColor: "#f0f2f5" }
                         },
                           el("td", {
                             className: "px-3 py-2.5 font-bold whitespace-nowrap cursor-pointer hover:underline",
                             style: { color: "#1877f2" },
-                            onClick: e => { e.stopPropagation(); setPopupMaHd(c.ma_hd); }
+                            onClick: () => setPopupMaHd(c.ma_hd)
                           }, c.ma_hd),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
                           el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
