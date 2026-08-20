@@ -380,7 +380,6 @@ async function handleAction(
       const since = new Date(today);
       since.setMonth(since.getMonth() - avgMonths);
       const sinceStr = since.toISOString().slice(0, 10);
-      const totalDays = Math.ceil((today.getTime() - since.getTime()) / 86400000);
 
       const { data: contracts } = await admin
         .from("contract_contracts")
@@ -406,7 +405,7 @@ async function handleAction(
 
         const { data: d2, error: e2 } = await admin
           .schema("app_sale").from("hoa_don_bovattu")
-          .select("so_hd, ma_san_pham, so_luong")
+          .select("so_hd, ma_san_pham, so_luong, ngay_tai_lieu")
           .in("so_hd", batch)
           .gte("ngay_tai_lieu", sinceStr);
         if (e2) return { ok: false, error: "recent invoice query failed: " + e2.message };
@@ -420,11 +419,14 @@ async function handleAction(
         totals[key] = (totals[key] || 0) + (Number(inv.so_luong) || 0);
       }
 
-      // Aggregate recent for avg daily
+      // Aggregate recent qty and distinct sales days
       const recents: Record<string, number> = {};
+      const salesDays: Record<string, Set<string>> = {};
       for (const inv of allInvoiceRecent) {
         const key = `${inv.so_hd}|||${inv.ma_san_pham}`;
         recents[key] = (recents[key] || 0) + (Number(inv.so_luong) || 0);
+        if (!salesDays[key]) salesDays[key] = new Set();
+        if (inv.ngay_tai_lieu) salesDays[key].add(String(inv.ngay_tai_lieu).slice(0, 10));
       }
 
       // Upsert snapshot (ma_ncc = ma_san_pham from invoice)
@@ -432,7 +434,8 @@ async function handleAction(
         const [so_hd, ma_ncc] = key.split("|||");
         const sold = totals[key] || 0;
         const recentSold = recents[key] || 0;
-        const avgDaily = totalDays > 0 ? recentSold / totalDays : 0;
+        const daysWithSales = salesDays[key]?.size || 0;
+        const avgDaily = daysWithSales > 0 ? recentSold / daysWithSales : 0;
         return {
           so_hd,
           ma_ncc,
