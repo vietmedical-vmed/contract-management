@@ -60,7 +60,7 @@
     },
       el("div", {
         className: "bg-white rounded-xl shadow-2xl w-full max-h-[85vh] flex flex-col",
-        style: { maxWidth: "960px", margin: "16px" }
+        style: { maxWidth: "1100px", margin: "16px" }
       },
         // Header
         el("div", { className: "flex items-center justify-between px-5 py-3 border-b shrink-0", style: { borderColor: "#f0f2f5" } },
@@ -88,7 +88,7 @@
                 : el("table", { className: "w-full text-sm" },
                     el("thead", null,
                       el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
-                        ["#", "Mã chung", "Mã NCC", "Đơn giá", "SL thầu", "SL bán", "SL thầu còn lại", "Cảnh báo"].map(h =>
+                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "SL thầu còn lại", "Cảnh báo"].map(h =>
                           el("th", {
                             key: h,
                             className: "px-3 py-2.5 text-left font-medium whitespace-nowrap sticky top-0",
@@ -108,6 +108,7 @@
                           el("td", { className: "px-3 py-2 text-gray-400" }, i + 1),
                           el("td", { className: "px-3 py-2 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
                           el("td", { className: "px-3 py-2 whitespace-nowrap" }, it.ma_ncc || "—"),
+                          el("td", { className: "px-3 py-2 max-w-[250px] truncate" }, it.ten_hang_hoa || "—"),
                           el("td", { className: "px-3 py-2 text-right whitespace-nowrap" }, fmtMoney(it.don_gia)),
                           el("td", { className: "px-3 py-2 text-right" }, fmt(it.so_luong_hd)),
                           el("td", { className: "px-3 py-2 text-right" }, fmt(it.so_luong_da_ban || 0)),
