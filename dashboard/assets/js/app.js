@@ -30,7 +30,7 @@
     return h("div", { className: "min-h-screen flex flex-col", style: { background: "#f0f2f5" } },
       // Header
       h("header", { className: "sticky top-0 z-30 shadow-sm", style: { background: "#fff", borderBottom: "1px solid #dadde1" } },
-        h("div", { className: "max-w-7xl mx-auto px-4 py-3 flex items-center justify-between" },
+        h("div", { className: "mx-auto px-4 py-3 flex items-center justify-between" },
           h("div", { className: "flex items-center gap-3" },
             h("div", {
               className: "w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold",
@@ -44,21 +44,24 @@
               )
             )
           ),
-          h("div", { className: "flex items-center gap-2" },
-            h("button", {
-              onClick: () => window.location.reload(),
-              className: "p-2 rounded-lg hover:bg-gray-100 text-sm", title: "Tải lại"
-            }, "\u{1F504}"),
-            h("button", {
-              onClick: onLogout,
-              className: "px-3 py-1.5 rounded-lg text-sm font-medium text-white",
-              style: { background: "#dc2626" }
-            }, "Đăng xuất")
+          h("div", { className: "flex flex-col items-end gap-1" },
+            h("span", { className: "text-xs italic", style: { color: "#65676b" } }, "Designed and developed by Do Hoang Giang"),
+            h("div", { className: "flex items-center gap-2" },
+              h("button", {
+                onClick: () => window.location.reload(),
+                className: "p-2 rounded-lg hover:bg-gray-100 text-sm", title: "Tải lại"
+              }, "\u{1F504}"),
+              h("button", {
+                onClick: onLogout,
+                className: "px-3 py-1.5 rounded-lg text-sm font-medium text-white",
+                style: { background: "#dc2626" }
+              }, "Đăng xuất")
+            )
           )
         ),
 
         // Tab nav
-        h("div", { className: "max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto" },
+        h("div", { className: "mx-auto px-4 flex gap-1 overflow-x-auto" },
           visibleNav.map(n =>
             h("button", {
               key: n.path,
@@ -72,7 +75,7 @@
       ),
 
       // Main content
-      h("main", { className: "flex-1 max-w-7xl mx-auto w-full px-4 py-6" },
+      h("main", { className: "flex-1 mx-auto w-full px-4 py-6" },
         Screen
           ? h(Screen, { user })
           : h("div", { className: "text-center py-20 text-gray-400" }, "Trang chưa được xây dựng")
