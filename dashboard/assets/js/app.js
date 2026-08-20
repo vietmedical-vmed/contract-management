@@ -6,10 +6,10 @@
   const R = window.CONTRACT_ROUTER;
 
   const NAV = [
-    { path: "/dashboard",  label: "Tổng quan",   icon: "\u{1F4CA}" },
-    { path: "/contracts",  label: "Hợp đồng",    icon: "\u{1F4C4}" },
-    { path: "/alerts",     label: "Cảnh báo",     icon: "\u{1F514}" },
-    { path: "/config",     label: "Cấu hình",     icon: "\u{2699}️}", roles: ["admin"] },
+    { path: "/dashboard",  label: "Tổng quan" },
+    { path: "/contracts",  label: "Hợp đồng" },
+    { path: "/alerts",     label: "Cảnh báo" },
+    { path: "/config",     label: "Cấu hình", roles: ["admin"] },
   ];
 
   function roleBadge(role) {
@@ -38,19 +38,19 @@
             }, initials),
             h("div", null,
               h("h1", { className: "text-base font-bold leading-tight", style: { color: "#1c1e21" } }, "QUẢN LÝ HỢP ĐỒNG"),
-              h("div", { className: "flex items-center gap-2 text-xs", style: { color: "#65676b" } },
-                h("span", null, user.ho_ten || user.username),
-                roleBadge(user.role)
+              h("div", { className: "text-xs", style: { color: "#65676b" } },
+                user.ho_ten || user.username
               )
             )
           ),
           h("div", { className: "flex flex-col items-end gap-1" },
-            h("span", { className: "text-xs italic", style: { color: "#65676b" } }, "Designed and developed by Do Hoang Giang"),
+            h("span", { className: "italic", style: { color: "#9ca3af", fontSize: "10px" } }, "Designed and developed by Do Hoang Giang"),
             h("div", { className: "flex items-center gap-2" },
               h("button", {
                 onClick: () => window.location.reload(),
-                className: "p-2 rounded-lg hover:bg-gray-100 text-sm", title: "Tải lại"
-              }, "\u{1F504}"),
+                className: "px-3 py-1.5 rounded-lg hover:bg-gray-100 text-sm font-medium",
+                style: { color: "#65676b" }
+              }, "Reload"),
               h("button", {
                 onClick: onLogout,
                 className: "px-3 py-1.5 rounded-lg text-sm font-medium text-white",
@@ -69,7 +69,7 @@
               className: "px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors " +
                 (path === n.path ? "border-blue-600" : "border-transparent hover:border-gray-300"),
               style: { color: path === n.path ? "#1877f2" : "#65676b" }
-            }, n.icon + " " + n.label)
+            }, n.label)
           )
         )
       ),
