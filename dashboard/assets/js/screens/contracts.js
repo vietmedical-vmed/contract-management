@@ -240,7 +240,11 @@
                           className: "border-b hover:bg-gray-50 transition",
                           style: { borderColor: "#f0f2f5" }
                         },
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap", style: { color: "#1c1e21" } }, c.ma_hd),
+                          el("td", {
+                            className: "px-3 py-2.5 font-bold whitespace-nowrap cursor-pointer hover:underline",
+                            style: { color: "#1877f2" },
+                            onClick: () => setPopupMaHd(c.ma_hd)
+                          }, c.ma_hd),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ma_kh || "—"),
                           el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
