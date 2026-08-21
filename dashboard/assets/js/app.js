@@ -44,12 +44,12 @@
             )
           ),
           h("div", { className: "flex flex-col items-end gap-1" },
-            h("span", { className: "italic", style: { color: "#9ca3af", fontSize: "10px" } }, "Designed and developed by Do Hoang Giang"),
+            h("span", { className: "italic", style: { color: "#9ca3af", fontSize: "10px" } }, "Designed and developed by ", h("strong", null, "Do Hoang Giang")),
             h("div", { className: "flex items-center gap-2" },
               h("button", {
                 onClick: () => window.location.reload(),
-                className: "px-3 py-1.5 rounded-lg hover:bg-gray-100 text-sm font-medium",
-                style: { color: "#65676b" }
+                className: "px-3 py-1.5 rounded-lg text-sm font-medium text-white",
+                style: { background: "#1877f2" }
               }, "Reload"),
               h("button", {
                 onClick: onLogout,
