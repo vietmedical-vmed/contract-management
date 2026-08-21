@@ -74,6 +74,7 @@ CREATE OR REPLACE VIEW contract_expiry_view AS
 SELECT
     c.ma_hd,
     c.so_hd,
+    c.ma_kh,
     c.ten_kh,
     c.mien,
     c.khay,
@@ -96,6 +97,7 @@ SELECT
     ci.id,
     ci.ma_hd,
     cc.so_hd,
+    cc.ma_kh,
     cc.ten_kh,
     cc.mien,
     cc.thoi_han,

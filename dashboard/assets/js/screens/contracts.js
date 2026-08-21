@@ -91,7 +91,8 @@
                         ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "SL thầu còn lại", "Cảnh báo"].map(h =>
                           el("th", {
                             key: h,
-                            className: "px-3 py-2.5 text-left font-medium whitespace-nowrap sticky top-0",
+                            className: "px-3 py-2.5 font-medium whitespace-nowrap sticky top-0 " +
+                              (["#", "Đơn giá", "SL thầu", "SL bán", "SL thầu còn lại"].includes(h) ? "text-center" : "text-left"),
                             style: { color: "#65676b", background: "#f8f9fa" }
                           }, h)
                         )
@@ -105,14 +106,14 @@
                           className: "border-b hover:bg-gray-50",
                           style: { borderColor: "#f0f2f5" }
                         },
-                          el("td", { className: "px-3 py-2 text-gray-400" }, i + 1),
+                          el("td", { className: "px-3 py-2 text-center text-gray-400" }, i + 1),
                           el("td", { className: "px-3 py-2 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
                           el("td", { className: "px-3 py-2 whitespace-nowrap" }, it.ma_ncc || "—"),
                           el("td", { className: "px-3 py-2 max-w-[250px] truncate" }, it.ten_hang_hoa || "—"),
-                          el("td", { className: "px-3 py-2 text-right whitespace-nowrap" }, fmtMoney(it.don_gia)),
-                          el("td", { className: "px-3 py-2 text-right" }, fmt(it.so_luong_hd)),
-                          el("td", { className: "px-3 py-2 text-right" }, fmt(it.so_luong_da_ban || 0)),
-                          el("td", { className: "px-3 py-2 text-right font-medium" }, fmt(conLai)),
+                          el("td", { className: "px-3 py-2 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
+                          el("td", { className: "px-3 py-2 text-center" }, fmt(it.so_luong_hd)),
+                          el("td", { className: "px-3 py-2 text-center" }, fmt(it.so_luong_da_ban || 0)),
+                          el("td", { className: "px-3 py-2 text-center font-medium" }, fmt(conLai)),
                           el("td", { className: "px-3 py-2 whitespace-nowrap" }, daysSupplyBadge(conLai, it.avg_daily_3m))
                         );
                       })
@@ -216,35 +217,37 @@
           el("table", { className: "w-full text-sm" },
             el("thead", null,
               el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
-                ["Mã HĐ", "Số HĐ", "Khách hàng", "Miền", "Ngày ký", "Thời hạn", "Còn lại", "PS", "SO"].map(h =>
-                  el("th", { key: h, className: "px-3 py-2.5 text-left font-medium whitespace-nowrap", style: { color: "#65676b" } }, h)
+                ["Mã HĐ", "Số HĐ", "Mã KH", "Khách hàng", "Miền", "Ngày ký", "Thời hạn", "Còn lại", "PS", "SO"].map(h =>
+                  el("th", {
+                    key: h,
+                    className: "px-3 py-2.5 font-medium whitespace-nowrap " +
+                      (["Ngày ký", "Thời hạn", "Còn lại"].includes(h) ? "text-center" : "text-left"),
+                    style: { color: "#65676b" }
+                  }, h)
                 )
               )
             ),
             el("tbody", null,
               loading
-                ? el("tr", null, el("td", { colSpan: 9, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
+                ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
                 : error
-                  ? el("tr", null, el("td", { colSpan: 9, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
+                  ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
                   : contracts.length === 0
-                    ? el("tr", null, el("td", { colSpan: 9, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
+                    ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
                     : contracts.map(c =>
                         el("tr", {
                           key: c.ma_hd,
                           className: "border-b hover:bg-gray-50 transition",
                           style: { borderColor: "#f0f2f5" }
                         },
-                          el("td", {
-                            className: "px-3 py-2.5 font-bold whitespace-nowrap cursor-pointer hover:underline",
-                            style: { color: "#1877f2" },
-                            onClick: () => setPopupMaHd(c.ma_hd)
-                          }, c.ma_hd),
+                          el("td", { className: "px-3 py-2.5 whitespace-nowrap", style: { color: "#1c1e21" } }, c.ma_hd),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
+                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ma_kh || "—"),
                           el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.mien || "—"),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, fmtDate(c.ngay_ky)),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, fmtDate(c.thoi_han)),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, statusBadge(c.days_remaining)),
+                          el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.ngay_ky)),
+                          el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.thoi_han)),
+                          el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, statusBadge(c.days_remaining)),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_ps || "—"),
                           el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_so || "—"),
                         )

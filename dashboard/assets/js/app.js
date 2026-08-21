@@ -8,7 +8,7 @@
   const NAV = [
     { path: "/dashboard",  label: "Tổng quan" },
     { path: "/contracts",  label: "Hợp đồng" },
-    { path: "/alerts",     label: "Cảnh báo" },
+    { path: "/alerts",     label: "Chi tiết sản phẩm" },
     { path: "/config",     label: "Cấu hình", roles: ["admin"] },
   ];
 

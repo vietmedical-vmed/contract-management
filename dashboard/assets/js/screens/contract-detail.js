@@ -94,7 +94,12 @@
             el("thead", null,
               el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
                 ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "SL HĐ", "Đã bán", "Còn lại", "Tiến độ", "Đơn giá", "Tổng tiền"].map(h =>
-                  el("th", { key: h, className: "px-3 py-2.5 text-left font-medium whitespace-nowrap", style: { color: "#65676b" } }, h)
+                  el("th", {
+                    key: h,
+                    className: "px-3 py-2.5 font-medium whitespace-nowrap " +
+                      (["#", "SL HĐ", "Đã bán", "Còn lại", "Đơn giá", "Tổng tiền"].includes(h) ? "text-center" : "text-left"),
+                    style: { color: "#65676b" }
+                  }, h)
                 )
               )
             ),
@@ -104,16 +109,16 @@
                 : items.map((it, i) => {
                     const conLai = (it.so_luong || 0) - (it.so_luong_da_ban || 0);
                     return el("tr", { key: it.id || i, className: "border-b", style: { borderColor: "#f0f2f5" } },
-                      el("td", { className: "px-3 py-2.5 text-gray-400" }, i + 1),
+                      el("td", { className: "px-3 py-2.5 text-center text-gray-400" }, i + 1),
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, it.ma_ncc || "—"),
                       el("td", { className: "px-3 py-2.5 max-w-[300px]" }, it.ten_hang_hoa || "—"),
-                      el("td", { className: "px-3 py-2.5 text-right" }, fmt(it.so_luong)),
-                      el("td", { className: "px-3 py-2.5 text-right" }, fmt(it.so_luong_da_ban || 0)),
-                      el("td", { className: "px-3 py-2.5 text-right font-medium" }, fmt(conLai)),
+                      el("td", { className: "px-3 py-2.5 text-center" }, fmt(it.so_luong)),
+                      el("td", { className: "px-3 py-2.5 text-center" }, fmt(it.so_luong_da_ban || 0)),
+                      el("td", { className: "px-3 py-2.5 text-center font-medium" }, fmt(conLai)),
                       el("td", { className: "px-3 py-2.5 min-w-[120px]" }, el(ProgressBar, { current: conLai, total: it.so_luong })),
-                      el("td", { className: "px-3 py-2.5 text-right whitespace-nowrap" }, fmtMoney(it.don_gia)),
-                      el("td", { className: "px-3 py-2.5 text-right whitespace-nowrap" }, fmtMoney(it.tong_tien)),
+                      el("td", { className: "px-3 py-2.5 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
+                      el("td", { className: "px-3 py-2.5 text-center whitespace-nowrap" }, fmtMoney(it.tong_tien)),
                     );
                   })
             )
