@@ -180,7 +180,13 @@ async function handleAction(
 
       const { data, count, error } = await q;
       if (error) return { ok: false, error: error.message };
-      return { ok: true, data, total: count };
+
+      let khayQ = admin.from("contract_expiry_view").select("khay").not("khay", "is", null).eq("is_ngoai_khoa", true);
+      if (perm.filterMien) khayQ = khayQ.eq("mien", perm.filterMien);
+      const { data: khayAll } = await khayQ;
+      const khayList = [...new Set((khayAll || []).map((r: any) => r.khay).filter(Boolean))].sort();
+
+      return { ok: true, data, total: count, khay_list: khayList };
     }
 
     // ── contract-detail ──────────────────────────────────────────────────
@@ -269,6 +275,8 @@ async function handleAction(
 
     // ── dashboard-summary ────────────────────────────────────────────────
     case "dashboard-summary": {
+      const { mien, khay } = payload || {};
+
       const { data: cfgRows } = await admin.from("contract_alert_config").select("key, value");
       const cfg: Record<string, any> = {};
       for (const r of cfgRows || []) cfg[r.key] = r.value;
@@ -278,30 +286,43 @@ async function handleAction(
       const maxWarn = Math.max(...warnDays);
       const maxQtyWarn = Math.max(...qtyMult);
 
-      // Active contracts only (Sắp hết hạn + Còn hạn, i.e. days_remaining > 0)
-      let aq = admin.from("contract_expiry_view")
-        .select("ma_hd", { count: "exact", head: true })
-        .eq("is_ngoai_khoa", true)
-        .gt("days_remaining", 0);
-      if (perm.filterMien) aq = aq.eq("mien", perm.filterMien);
-      const { count: totalActive } = await aq;
-
-      // Fiscal year (April → March): contracts expiring within the current FY
+      // Fiscal year boundaries (April → March)
       const now = new Date();
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
       const fyStart = month >= 4 ? `${year}-04-01` : `${year - 1}-04-01`;
       const fyEnd = month >= 4 ? `${year + 1}-03-31` : `${year}-03-31`;
+      const today = now.toISOString().slice(0, 10);
 
-      let fyq = admin.from("contract_expiry_view")
-        .select("ma_hd", { count: "exact", head: true })
+      // All contracts relevant to this FY: valid at FY start OR signed during FY
+      let allQ = admin.from("contract_expiry_view")
+        .select("ma_hd, ngay_ky, thoi_han, khay")
         .eq("is_ngoai_khoa", true)
-        .gte("thoi_han", fyStart)
-        .lte("thoi_han", fyEnd);
-      if (perm.filterMien) fyq = fyq.eq("mien", perm.filterMien);
-      const { count: fiscalYearCount } = await fyq;
+        .or(`and(thoi_han.gte.${fyStart},ngay_ky.lt.${fyStart}),ngay_ky.gte.${fyStart}`)
+        .limit(5000);
+      if (perm.filterMien) allQ = allQ.eq("mien", perm.filterMien);
+      if (mien) allQ = allQ.eq("mien", mien);
+      if (khay) allQ = allQ.eq("khay", khay);
+      const { data: allContracts } = await allQ;
 
-      // Expiring contracts
+      let conHan = 0, sapHet = 0, hetHan = 0, kyMoi = 0;
+      for (const c of allContracts || []) {
+        if (c.ngay_ky && c.ngay_ky >= fyStart) {
+          kyMoi++;
+        } else if (c.thoi_han && c.thoi_han >= fyStart) {
+          if (c.thoi_han > fyEnd) conHan++;
+          else if (c.thoi_han >= today) sapHet++;
+          else hetHan++;
+        }
+      }
+
+      // Distinct khay list (unfiltered by khay so dropdown always shows all options)
+      let khayQ = admin.from("contract_expiry_view").select("khay").not("khay", "is", null).eq("is_ngoai_khoa", true);
+      if (perm.filterMien) khayQ = khayQ.eq("mien", perm.filterMien);
+      const { data: khayData } = await khayQ;
+      const khayList = [...new Set((khayData || []).map((r: any) => r.khay).filter(Boolean))].sort();
+
+      // Expiry alerts
       let eq = admin
         .from("contract_expiry_view")
         .select("*")
@@ -311,6 +332,8 @@ async function handleAction(
         .order("days_remaining", { ascending: true })
         .limit(10);
       if (perm.filterMien) eq = eq.eq("mien", perm.filterMien);
+      if (mien) eq = eq.eq("mien", mien);
+      if (khay) eq = eq.eq("khay", khay);
       const { data: expiryAlerts } = await eq;
 
       // Quantity alerts (top 10)
@@ -321,6 +344,8 @@ async function handleAction(
         .gt("so_luong_hd", 0)
         .gt("avg_daily_3m", 0);
       if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
+      if (mien) qq = qq.eq("mien", mien);
+      if (khay) qq = qq.eq("khay", khay);
       const { data: itemsRaw } = await qq;
 
       const quantityAlerts: any[] = [];
@@ -337,12 +362,15 @@ async function handleAction(
 
       return {
         ok: true,
-        total_active_contracts: totalActive || 0,
-        expiring_count: (expiryAlerts || []).length,
-        low_quantity_count: quantityAlerts.length,
-        fiscal_year_expiry_count: fiscalYearCount || 0,
+        total_contracts: conHan + sapHet + hetHan + kyMoi,
+        con_han_count: conHan,
+        sap_het_han_count: sapHet,
+        het_han_count: hetHan,
+        ky_moi_count: kyMoi,
         max_warn_days: maxWarn,
         max_qty_warn_days: maxQtyWarn,
+        fy_label: fyStart.slice(0, 4) + "–" + fyEnd.slice(0, 4),
+        khay_list: khayList,
         expiry_alerts: (expiryAlerts || []).slice(0, 10),
         quantity_alerts: quantityAlerts.slice(0, 10),
       };

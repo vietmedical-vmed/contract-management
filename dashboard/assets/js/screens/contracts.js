@@ -3,6 +3,7 @@
   const { useState, useEffect, useCallback } = React;
   const { api } = window.CONTRACT_API;
   const R = window.CONTRACT_ROUTER;
+  const F = window.CONTRACT_FILTERS;
 
   function fmt(n) { return (n || 0).toLocaleString("vi-VN"); }
   function fmtDate(d) { return d ? new Date(d).toLocaleDateString("vi-VN") : "—"; }
@@ -134,29 +135,28 @@
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
-    const [filterMien, setFilterMien] = useState("");
-    const [filterKhay, setFilterKhay] = useState("");
+    const filters = F.useFilters();
     const [filterStatus, setFilterStatus] = useState("all");
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
+    const [khayOptions, setKhayOptions] = useState([]);
     const [popupMaHd, setPopupMaHd] = useState(null);
     const PAGE_SIZE = 30;
 
     const load = useCallback(() => {
       setLoading(true);
       api("list-contracts", {
-        search, mien: filterMien, khay: filterKhay, status: filterStatus,
+        search, mien: filters.mien, khay: filters.khay, status: filterStatus,
         page, page_size: PAGE_SIZE
       })
-        .then(res => { setContracts(res.data || []); setTotal(res.total || 0); })
+        .then(res => { setContracts(res.data || []); setTotal(res.total || 0); if (res.khay_list) setKhayOptions(res.khay_list); })
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
-    }, [search, filterMien, filterKhay, filterStatus, page]);
+    }, [search, filters.mien, filters.khay, filterStatus, page]);
 
     useEffect(() => { load(); }, [load]);
 
     const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
-    const khayOptions = [...new Set(contracts.map(c => c.khay).filter(Boolean))].sort();
 
     return el("div", { className: "space-y-4" },
       popupMaHd && el(ItemsModal, { maHd: popupMaHd, onClose: () => setPopupMaHd(null) }),
@@ -175,7 +175,7 @@
           el("div", null,
             el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Miền"),
             el("select", {
-              value: filterMien, onChange: e => { setFilterMien(e.target.value); setPage(1); },
+              value: filters.mien, onChange: e => { F.set({ mien: e.target.value }); setPage(1); },
               className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
             },
               el("option", { value: "" }, "Tất cả"),
@@ -184,9 +184,9 @@
             )
           ),
           el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Khay"),
+            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Nhóm SP"),
             el("select", {
-              value: filterKhay, onChange: e => { setFilterKhay(e.target.value); setPage(1); },
+              value: filters.khay, onChange: e => { F.set({ khay: e.target.value }); setPage(1); },
               className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
             },
               el("option", { value: "" }, "Tất cả"),
