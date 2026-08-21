@@ -160,7 +160,8 @@ async function handleAction(
 
       let q = admin
         .from("contract_expiry_view")
-        .select("*", { count: "exact" });
+        .select("*", { count: "exact" })
+        .eq("is_ngoai_khoa", true);
 
       if (perm.filterMien) q = q.eq("mien", perm.filterMien);
       if (mien) q = q.eq("mien", mien);
@@ -223,6 +224,7 @@ async function handleAction(
       let eq = admin
         .from("contract_expiry_view")
         .select("*")
+        .eq("is_ngoai_khoa", true)
         .gte("days_remaining", 0)
         .lte("days_remaining", maxWarn)
         .order("days_remaining", { ascending: true });
@@ -238,6 +240,7 @@ async function handleAction(
       let qq = admin
         .from("contract_items_remaining_view")
         .select("*")
+        .eq("is_ngoai_khoa", true)
         .gt("so_luong_hd", 0)
         .gt("avg_daily_3m", 0);
       if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
@@ -278,6 +281,7 @@ async function handleAction(
       // Active contracts only (Sắp hết hạn + Còn hạn, i.e. days_remaining > 0)
       let aq = admin.from("contract_expiry_view")
         .select("ma_hd", { count: "exact", head: true })
+        .eq("is_ngoai_khoa", true)
         .gt("days_remaining", 0);
       if (perm.filterMien) aq = aq.eq("mien", perm.filterMien);
       const { count: totalActive } = await aq;
@@ -289,9 +293,9 @@ async function handleAction(
       const fyStart = month >= 4 ? `${year}-04-01` : `${year - 1}-04-01`;
       const fyEnd = month >= 4 ? `${year + 1}-03-31` : `${year}-03-31`;
 
-      let fyq = admin.from("contract_contracts")
+      let fyq = admin.from("contract_expiry_view")
         .select("ma_hd", { count: "exact", head: true })
-        .not("thoi_han", "is", null)
+        .eq("is_ngoai_khoa", true)
         .gte("thoi_han", fyStart)
         .lte("thoi_han", fyEnd);
       if (perm.filterMien) fyq = fyq.eq("mien", perm.filterMien);
@@ -301,6 +305,7 @@ async function handleAction(
       let eq = admin
         .from("contract_expiry_view")
         .select("*")
+        .eq("is_ngoai_khoa", true)
         .gte("days_remaining", 0)
         .lte("days_remaining", maxWarn)
         .order("days_remaining", { ascending: true })
@@ -312,6 +317,7 @@ async function handleAction(
       let qq = admin
         .from("contract_items_remaining_view")
         .select("*")
+        .eq("is_ngoai_khoa", true)
         .gt("so_luong_hd", 0)
         .gt("avg_daily_3m", 0);
       if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
