@@ -195,6 +195,14 @@ async function handleAction(
         if (nhomMaHds.length === 0) return { ok: true, data: [], total: 0, nhom_sp_list: nhomSpList };
       }
 
+      // Fiscal year boundaries (April → March)
+      const now = new Date();
+      const mon = now.getMonth() + 1;
+      const yr = now.getFullYear();
+      const fyStart = mon >= 4 ? `${yr}-04-01` : `${yr - 1}-04-01`;
+      const fyEnd = mon >= 4 ? `${yr + 1}-03-31` : `${yr}-03-31`;
+      const today = now.toISOString().slice(0, 10);
+
       let q = admin
         .from("contract_expiry_view")
         .select("*", { count: "exact" })
@@ -204,9 +212,15 @@ async function handleAction(
       if (mien) q = q.eq("mien", mien);
       if (nhomMaHds) q = q.in("ma_hd", nhomMaHds);
 
-      if (status === "active") q = q.gt("days_remaining", 0);
-      else if (status === "expired") q = q.lte("days_remaining", 0);
-      else if (status === "expiring") q = q.gt("days_remaining", 0).lte("days_remaining", 30);
+      if (status === "ky_moi") {
+        q = q.gte("ngay_ky", fyStart);
+      } else if (status === "con_han") {
+        q = q.lt("ngay_ky", fyStart).gt("thoi_han", fyEnd);
+      } else if (status === "sap_het") {
+        q = q.lt("ngay_ky", fyStart).gte("thoi_han", today).lte("thoi_han", fyEnd);
+      } else if (status === "het_han") {
+        q = q.lt("ngay_ky", fyStart).gte("thoi_han", fyStart).lt("thoi_han", today);
+      }
 
       if (search) {
         const s = sanitizeSearch(search);

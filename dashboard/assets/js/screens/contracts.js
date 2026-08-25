@@ -200,9 +200,10 @@
               className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
             },
               el("option", { value: "all" }, "Tất cả"),
-              el("option", { value: "active" }, "Còn hạn"),
-              el("option", { value: "expired" }, "Hết hạn"),
-              el("option", { value: "expiring" }, "Sắp hết hạn")
+              el("option", { value: "con_han" }, "Còn hạn"),
+              el("option", { value: "sap_het" }, "Sắp hết hạn"),
+              el("option", { value: "het_han" }, "Hết hạn"),
+              el("option", { value: "ky_moi" }, "Ký mới")
             )
           ),
         ),
