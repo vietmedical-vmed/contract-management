@@ -1,5 +1,5 @@
 (function () {
-  var _filters = { mien: "", khay: "" };
+  var _filters = { mien: "", nhom_sp: "" };
   var _listeners = new Set();
 
   function get() { return Object.assign({}, _filters); }

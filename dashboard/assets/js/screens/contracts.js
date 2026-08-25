@@ -139,20 +139,20 @@
     const [filterStatus, setFilterStatus] = useState("all");
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
-    const [khayOptions, setKhayOptions] = useState([]);
+    const [nhomSpOptions, setNhomSpOptions] = useState([]);
     const [popupMaHd, setPopupMaHd] = useState(null);
     const PAGE_SIZE = 30;
 
     const load = useCallback(() => {
       setLoading(true);
       api("list-contracts", {
-        search, mien: filters.mien, khay: filters.khay, status: filterStatus,
+        search, mien: filters.mien, nhom_sp: filters.nhom_sp, status: filterStatus,
         page, page_size: PAGE_SIZE
       })
-        .then(res => { setContracts(res.data || []); setTotal(res.total || 0); if (res.khay_list) setKhayOptions(res.khay_list); })
+        .then(res => { setContracts(res.data || []); setTotal(res.total || 0); if (res.nhom_sp_list) setNhomSpOptions(res.nhom_sp_list); })
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
-    }, [search, filters.mien, filters.khay, filterStatus, page]);
+    }, [search, filters.mien, filters.nhom_sp, filterStatus, page]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -186,11 +186,11 @@
           el("div", null,
             el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Nhóm SP"),
             el("select", {
-              value: filters.khay, onChange: e => { F.set({ khay: e.target.value }); setPage(1); },
+              value: filters.nhom_sp, onChange: e => { F.set({ nhom_sp: e.target.value }); setPage(1); },
               className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
             },
               el("option", { value: "" }, "Tất cả"),
-              khayOptions.map(k => el("option", { key: k, value: k }, k))
+              nhomSpOptions.map(k => el("option", { key: k, value: k }, k))
             )
           ),
           el("div", null,
