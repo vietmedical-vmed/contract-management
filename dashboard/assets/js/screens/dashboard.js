@@ -52,11 +52,11 @@
 
     useEffect(function () {
       setLoading(true);
-      api("dashboard-summary", { mien: filters.mien, nhom_sp: filters.nhom_sp })
+      api("dashboard-summary", { bu: filters.bu, mien: filters.mien, nhom_sp: filters.nhom_sp })
         .then(function (res) { setData(res); })
         .catch(function (err) { setError(err.message); })
         .finally(function () { setLoading(false); });
-    }, [filters.mien, filters.nhom_sp]);
+    }, [filters.bu, filters.mien, filters.nhom_sp]);
 
     if (loading) return el("div", { className: "text-center py-20 text-gray-400" }, "Đang tải dữ liệu...");
     if (error) return el("div", { className: "text-center py-20" },
@@ -91,6 +91,17 @@
       // Filter bar
       el("div", { className: "bg-white rounded-xl shadow-sm p-4" },
         el("div", { className: "flex flex-wrap gap-3 items-end" },
+          el("div", null,
+            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "BU"),
+            el("select", {
+              value: filters.bu,
+              onChange: function (e) { F.set({ bu: e.target.value }); },
+              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
+            },
+              el("option", { value: "" }, "Tất cả"),
+              (data.bu_list || []).map(function (k) { return el("option", { key: k, value: k }, k); })
+            )
+          ),
           el("div", null,
             el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Miền"),
             el("select", {

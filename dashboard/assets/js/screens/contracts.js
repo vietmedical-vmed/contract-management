@@ -139,6 +139,7 @@
     const [filterStatus, setFilterStatus] = useState("all");
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
+    const [buOptions, setBuOptions] = useState([]);
     const [nhomSpOptions, setNhomSpOptions] = useState([]);
     const [popupMaHd, setPopupMaHd] = useState(null);
     const PAGE_SIZE = 30;
@@ -146,13 +147,17 @@
     const load = useCallback(() => {
       setLoading(true);
       api("list-contracts", {
-        search, mien: filters.mien, nhom_sp: filters.nhom_sp, status: filterStatus,
+        search, bu: filters.bu, mien: filters.mien, nhom_sp: filters.nhom_sp, status: filterStatus,
         page, page_size: PAGE_SIZE
       })
-        .then(res => { setContracts(res.data || []); setTotal(res.total || 0); if (res.nhom_sp_list) setNhomSpOptions(res.nhom_sp_list); })
+        .then(res => {
+          setContracts(res.data || []); setTotal(res.total || 0);
+          if (res.bu_list) setBuOptions(res.bu_list);
+          if (res.nhom_sp_list) setNhomSpOptions(res.nhom_sp_list);
+        })
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
-    }, [search, filters.mien, filters.nhom_sp, filterStatus, page]);
+    }, [search, filters.bu, filters.mien, filters.nhom_sp, filterStatus, page]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -171,6 +176,16 @@
               value: search, onChange: e => { setSearch(e.target.value); setPage(1); },
               className: "w-full px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
             })
+          ),
+          el("div", null,
+            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "BU"),
+            el("select", {
+              value: filters.bu, onChange: e => { F.set({ bu: e.target.value }); setPage(1); },
+              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
+            },
+              el("option", { value: "" }, "Tất cả"),
+              buOptions.map(k => el("option", { key: k, value: k }, k))
+            )
           ),
           el("div", null,
             el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Miền"),

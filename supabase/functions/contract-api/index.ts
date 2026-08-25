@@ -115,6 +115,28 @@ async function resolveNhomSp(admin: SupabaseClient, nhomSp: string): Promise<str
   return [...new Set(allMaHd)];
 }
 
+async function resolveBu(admin: SupabaseClient, bu: string): Promise<string[]> {
+  const { data: nccData } = await admin
+    .schema("shared").from("dm_vat_tu")
+    .select("ma_ncc")
+    .eq("bu", bu);
+  const nccList = (nccData || []).map((r: any) => r.ma_ncc).filter(Boolean);
+  if (nccList.length === 0) return [];
+  const allMaHd: string[] = [];
+  for (let i = 0; i < nccList.length; i += 50) {
+    const { data } = await admin
+      .from("contract_items")
+      .select("ma_hd")
+      .in("ma_ncc", nccList.slice(i, i + 50));
+    if (data) allMaHd.push(...data.map((r: any) => r.ma_hd));
+  }
+  return [...new Set(allMaHd)];
+}
+
+async function getBuList(): Promise<string[]> {
+  return [...NGOAI_KHOA_BUS].sort();
+}
+
 async function getNhomSpList(admin: SupabaseClient): Promise<string[]> {
   const { data } = await admin
     .schema("shared").from("dm_vat_tu")
@@ -183,16 +205,30 @@ async function handleAction(
 
     // ── list-contracts ───────────────────────────────────────────────────
     case "list-contracts": {
-      const { search, mien, nhom_sp, status, page = 1, page_size = 50 } = payload || {};
+      const { search, mien, bu, nhom_sp, status, page = 1, page_size = 50 } = payload || {};
       const from = (page - 1) * page_size;
       const to = from + page_size - 1;
 
+      const buList = await getBuList();
       const nhomSpList = await getNhomSpList(admin);
 
-      let nhomMaHds: string[] | null = null;
+      // Resolve BU and nhom_sp → ma_hd sets, intersect if both
+      let filterMaHds: string[] | null = null;
+      if (bu) {
+        const buMaHds = await resolveBu(admin, bu);
+        if (buMaHds.length === 0) return { ok: true, data: [], total: 0, bu_list: buList, nhom_sp_list: nhomSpList };
+        filterMaHds = buMaHds;
+      }
       if (nhom_sp) {
-        nhomMaHds = await resolveNhomSp(admin, nhom_sp);
-        if (nhomMaHds.length === 0) return { ok: true, data: [], total: 0, nhom_sp_list: nhomSpList };
+        const nhomMaHds = await resolveNhomSp(admin, nhom_sp);
+        if (nhomMaHds.length === 0) return { ok: true, data: [], total: 0, bu_list: buList, nhom_sp_list: nhomSpList };
+        if (filterMaHds) {
+          const nhomSet = new Set(nhomMaHds);
+          filterMaHds = filterMaHds.filter(id => nhomSet.has(id));
+          if (filterMaHds.length === 0) return { ok: true, data: [], total: 0, bu_list: buList, nhom_sp_list: nhomSpList };
+        } else {
+          filterMaHds = nhomMaHds;
+        }
       }
 
       // Fiscal year boundaries (April → March)
@@ -210,7 +246,7 @@ async function handleAction(
 
       if (perm.filterMien) q = q.eq("mien", perm.filterMien);
       if (mien) q = q.eq("mien", mien);
-      if (nhomMaHds) q = q.in("ma_hd", nhomMaHds);
+      if (filterMaHds) q = q.in("ma_hd", filterMaHds);
 
       if (status === "ky_moi") {
         q = q.gte("ngay_ky", fyStart);
@@ -232,7 +268,7 @@ async function handleAction(
       const { data, count, error } = await q;
       if (error) return { ok: false, error: error.message };
 
-      return { ok: true, data, total: count, nhom_sp_list: nhomSpList };
+      return { ok: true, data, total: count, bu_list: buList, nhom_sp_list: nhomSpList };
     }
 
     // ── contract-detail ──────────────────────────────────────────────────
@@ -321,7 +357,7 @@ async function handleAction(
 
     // ── dashboard-summary ────────────────────────────────────────────────
     case "dashboard-summary": {
-      const { mien, nhom_sp } = payload || {};
+      const { mien, bu, nhom_sp } = payload || {};
 
       const { data: cfgRows } = await admin.from("contract_alert_config").select("key, value");
       const cfg: Record<string, any> = {};
@@ -340,11 +376,20 @@ async function handleAction(
       const fyEnd = month >= 4 ? `${year + 1}-03-31` : `${year}-03-31`;
       const today = now.toISOString().slice(0, 10);
 
-      // Resolve nhom_sp → set of ma_hd
-      let nhomMaHdSet: Set<string> | null = null;
+      // Resolve BU and nhom_sp → set of ma_hd, intersect if both
+      let filterMaHdSet: Set<string> | null = null;
+      if (bu) {
+        const buMaHds = await resolveBu(admin, bu);
+        filterMaHdSet = new Set(buMaHds);
+      }
       if (nhom_sp) {
-        const maHds = await resolveNhomSp(admin, nhom_sp);
-        nhomMaHdSet = new Set(maHds);
+        const nhomMaHds = await resolveNhomSp(admin, nhom_sp);
+        if (filterMaHdSet) {
+          const nhomSet = new Set(nhomMaHds);
+          filterMaHdSet = new Set([...filterMaHdSet].filter(id => nhomSet.has(id)));
+        } else {
+          filterMaHdSet = new Set(nhomMaHds);
+        }
       }
 
       // All contracts relevant to this FY: valid at FY start OR signed during FY
@@ -359,7 +404,7 @@ async function handleAction(
 
       let conHan = 0, sapHet = 0, hetHan = 0, kyMoi = 0;
       for (const c of allContracts || []) {
-        if (nhomMaHdSet && !nhomMaHdSet.has(c.ma_hd)) continue;
+        if (filterMaHdSet && !filterMaHdSet.has(c.ma_hd)) continue;
         if (c.ngay_ky && c.ngay_ky >= fyStart) {
           kyMoi++;
         } else if (c.thoi_han && c.thoi_han >= fyStart) {
@@ -369,7 +414,8 @@ async function handleAction(
         }
       }
 
-      // Nhóm SP list for dropdown
+      // Dropdown lists
+      const buListRes = await getBuList();
       const nhomSpList = await getNhomSpList(admin);
 
       // Expiry alerts
@@ -380,13 +426,13 @@ async function handleAction(
         .gte("days_remaining", 0)
         .lte("days_remaining", maxWarn)
         .order("days_remaining", { ascending: true })
-        .limit(nhomMaHdSet ? 500 : 10);
+        .limit(filterMaHdSet ? 500 : 10);
       if (perm.filterMien) eq = eq.eq("mien", perm.filterMien);
       if (mien) eq = eq.eq("mien", mien);
       const { data: rawExpiry } = await eq;
 
-      const expiryAlerts = nhomMaHdSet
-        ? (rawExpiry || []).filter((c: any) => nhomMaHdSet!.has(c.ma_hd)).slice(0, 10)
+      const expiryAlerts = filterMaHdSet
+        ? (rawExpiry || []).filter((c: any) => filterMaHdSet!.has(c.ma_hd)).slice(0, 10)
         : (rawExpiry || []).slice(0, 10);
 
       // Quantity alerts (top 10)
@@ -402,7 +448,7 @@ async function handleAction(
 
       const quantityAlerts: any[] = [];
       for (const it of itemsRaw || []) {
-        if (nhomMaHdSet && !nhomMaHdSet.has(it.ma_hd)) continue;
+        if (filterMaHdSet && !filterMaHdSet.has(it.ma_hd)) continue;
         const conLai = it.so_luong_con_lai ?? 0;
         const avgDaily = it.avg_daily_3m ?? 0;
         if (avgDaily <= 0) continue;
@@ -423,6 +469,7 @@ async function handleAction(
         max_warn_days: maxWarn,
         max_qty_warn_days: maxQtyWarn,
         fy_label: fyStart.slice(0, 4) + "–" + fyEnd.slice(0, 4),
+        bu_list: buListRes,
         nhom_sp_list: nhomSpList,
         expiry_alerts: expiryAlerts,
         quantity_alerts: quantityAlerts.slice(0, 10),
