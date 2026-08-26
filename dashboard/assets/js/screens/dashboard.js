@@ -7,18 +7,6 @@
 
   function fmt(n) { return (n || 0).toLocaleString("vi-VN"); }
 
-  function KPICard({ label, value, color, sub, onClick }) {
-    return el("div", {
-      className: "bg-white rounded-xl shadow-sm p-5" + (onClick ? " cursor-pointer hover:shadow-md" : "") + " transition",
-      style: { borderLeft: "4px solid " + color },
-      onClick: onClick
-    },
-      el("div", { className: "text-sm font-medium", style: { color: "#65676b" } }, label),
-      el("div", { className: "text-3xl font-bold mt-1", style: { color: color } }, fmt(value)),
-      sub && el("div", { className: "text-xs mt-1", style: { color: "#65676b" } }, sub)
-    );
-  }
-
   function AlertRow({ items, title, color, emptyMsg }) {
     return el("div", { className: "bg-white rounded-xl shadow-sm p-5" },
       el("h3", { className: "font-semibold mb-3 flex items-center gap-2", style: { color: "#1c1e21" } },
@@ -45,18 +33,23 @@
   }
 
   function DashboardScreen({ user }) {
-    const [data, setData] = useState(null);
+    const [dataBac, setDataBac] = useState(null);
+    const [dataNam, setDataNam] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const filters = F.useFilters();
+    const [mienTab, setMienTab] = useState("Miền Bắc");
 
     useEffect(function () {
       setLoading(true);
-      api("dashboard-summary", { bu: filters.bu, mien: filters.mien, nhom_sp: filters.nhom_sp })
-        .then(function (res) { setData(res); })
+      Promise.all([
+        api("dashboard-summary", { bu: filters.bu, mien: "Miền Bắc", nhom_sp: filters.nhom_sp }),
+        api("dashboard-summary", { bu: filters.bu, mien: "Miền Nam", nhom_sp: filters.nhom_sp })
+      ])
+        .then(function (res) { setDataBac(res[0]); setDataNam(res[1]); })
         .catch(function (err) { setError(err.message); })
         .finally(function () { setLoading(false); });
-    }, [filters.bu, filters.mien, filters.nhom_sp]);
+    }, [filters.bu, filters.nhom_sp]);
 
     if (loading) return el("div", { className: "text-center py-20 text-gray-400" }, "Đang tải dữ liệu...");
     if (error) return el("div", { className: "text-center py-20" },
@@ -67,6 +60,7 @@
       }, "Thử lại")
     );
 
+    var data = mienTab === "Miền Bắc" ? dataBac : dataNam;
     if (!data) return null;
 
     var expiryAlerts = (data.expiry_alerts || []).map(function (a) {
@@ -88,76 +82,87 @@
     });
 
     return el("div", { className: "space-y-4" },
-      // Filter bar
-      el("div", { className: "bg-white rounded-xl shadow-sm p-4" },
-        el("div", { className: "flex flex-wrap gap-3 items-end" },
-          el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "BU"),
-            el("select", {
-              value: filters.bu,
-              onChange: function (e) { F.set({ bu: e.target.value }); },
-              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            },
-              el("option", { value: "" }, "Tất cả"),
-              (data.bu_list || []).map(function (k) { return el("option", { key: k, value: k }, k); })
-            )
-          ),
-          el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Miền"),
-            el("select", {
-              value: filters.mien,
-              onChange: function (e) { F.set({ mien: e.target.value }); },
-              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            },
-              el("option", { value: "" }, "Tất cả"),
-              el("option", { value: "Miền Bắc" }, "Miền Bắc"),
-              el("option", { value: "Miền Nam" }, "Miền Nam")
-            )
-          ),
-          el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Nhóm SP"),
-            el("select", {
-              value: filters.nhom_sp,
-              onChange: function (e) { F.set({ nhom_sp: e.target.value }); },
-              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            },
-              el("option", { value: "" }, "Tất cả"),
-              (data.nhom_sp_list || []).map(function (k) { return el("option", { key: k, value: k }, k); })
-            )
-          )
+      // KPI cards
+      el("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" },
+        [
+          { label: "Tổng hợp đồng", value: data.total_contracts, color: "#1877f2", sub: "Năm tài chính " + (data.fy_label || "") },
+          { label: "Còn hạn", value: data.con_han_count, color: "#22c55e", sub: "Không hết hạn trong năm" },
+          { label: "Sắp hết hạn", value: data.sap_het_han_count, color: "#f59e0b", sub: "Hết hạn trong năm, chưa hết", onClick: function () { R.navigate("/contracts"); } },
+          { label: "Hết hạn", value: data.het_han_count, color: "#6b7280", sub: "Đã hết hạn trong năm" },
+          { label: "Ký mới", value: data.ky_moi_count, color: "#8b5cf6", sub: "Ký mới trong năm" },
+        ].map(function (c) {
+          return el("div", {
+            key: c.label,
+            className: "bg-white rounded-xl shadow-sm p-4" + (c.onClick ? " cursor-pointer hover:shadow-md" : "") + " transition",
+            style: { borderLeft: "4px solid " + c.color },
+            onClick: c.onClick
+          },
+            el("div", { className: "text-xs font-medium", style: { color: "#65676b" } }, c.label),
+            el("div", { className: "text-2xl font-bold mt-0.5", style: { color: c.color } }, fmt(c.value)),
+            el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, c.sub)
+          );
+        })
+      ),
+
+      // Compact filter bar
+      el("div", { className: "bg-white rounded-xl shadow-sm px-4 py-2.5 flex flex-wrap items-center gap-3" },
+        el("span", { className: "text-xs font-semibold uppercase", style: { color: "#9ca3af", letterSpacing: "0.05em" } }, "Lọc"),
+        el("select", {
+          value: filters.nhom_sp,
+          onChange: function (e) { F.set({ nhom_sp: e.target.value }); },
+          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
+        },
+          el("option", { value: "" }, "Nhóm SP: tất cả"),
+          (data.nhom_sp_list || []).map(function (k) { return el("option", { key: k, value: k }, k); })
+        ),
+        el("select", {
+          value: filters.bu,
+          onChange: function (e) { F.set({ bu: e.target.value }); },
+          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
+        },
+          el("option", { value: "" }, "BU: tất cả"),
+          (data.bu_list || []).map(function (k) { return el("option", { key: k, value: k }, k); })
         )
       ),
 
-      // KPI cards — 5 columns
-      el("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" },
-        el(KPICard, {
-          label: "Tổng hợp đồng", value: data.total_contracts, color: "#1877f2",
-          sub: "Năm tài chính " + (data.fy_label || "")
-        }),
-        el(KPICard, { label: "Còn hạn", value: data.con_han_count, color: "#22c55e", sub: "Không hết hạn trong năm" }),
-        el(KPICard, {
-          label: "Sắp hết hạn", value: data.sap_het_han_count, color: "#f59e0b",
-          sub: "Hết hạn trong năm, chưa hết",
-          onClick: function () { R.navigate("/contracts"); }
-        }),
-        el(KPICard, { label: "Hết hạn", value: data.het_han_count, color: "#6b7280", sub: "Đã hết hạn trong năm" }),
-        el(KPICard, { label: "Ký mới", value: data.ky_moi_count, color: "#8b5cf6", sub: "Ký mới trong năm" })
-      ),
-
-      // Alert rows
-      el("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" },
-        el(AlertRow, {
-          title: "HĐ sắp hết hạn (" + (data.max_warn_days || 30) + " ngày)",
-          items: expiryAlerts,
-          color: "#f59e0b",
-          emptyMsg: "Không có hợp đồng nào sắp hết hạn"
-        }),
-        el(AlertRow, {
-          title: "SP sắp hết thầu (" + (data.max_qty_warn_days || 20) + " ngày)",
-          items: quantityAlerts,
-          color: "#dc2626",
-          emptyMsg: "Không có sản phẩm nào sắp hết thầu"
-        })
+      // Miền tabs + Alert rows
+      el("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden" },
+        el("div", { className: "flex border-b", style: { borderColor: "#dadde1" } },
+          [{ m: "Miền Bắc", kd: dataBac }, { m: "Miền Nam", kd: dataNam }].map(function (t) {
+            return el("button", {
+              key: t.m,
+              onClick: function () { setMienTab(t.m); },
+              className: "px-5 py-2.5 text-sm font-medium relative transition-colors",
+              style: {
+                color: mienTab === t.m ? "#1877f2" : "#65676b",
+                background: "transparent",
+                border: "none",
+                borderBottom: mienTab === t.m ? "2px solid #1877f2" : "2px solid transparent",
+                cursor: "pointer",
+                marginBottom: "-1px"
+              }
+            }, t.m, t.kd && el("span", {
+              className: "ml-1.5 text-xs font-normal",
+              style: { color: mienTab === t.m ? "#1877f2" : "#9ca3af" }
+            }, "(" + fmt(t.kd.total_contracts) + ")"));
+          })
+        ),
+        el("div", { className: "p-5" },
+          el("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" },
+            el(AlertRow, {
+              title: "HĐ sắp hết hạn (" + (data.max_warn_days || 30) + " ngày)",
+              items: expiryAlerts,
+              color: "#f59e0b",
+              emptyMsg: "Không có hợp đồng nào sắp hết hạn"
+            }),
+            el(AlertRow, {
+              title: "SP sắp hết thầu (" + (data.max_qty_warn_days || 20) + " ngày)",
+              items: quantityAlerts,
+              color: "#dc2626",
+              emptyMsg: "Không có sản phẩm nào sắp hết thầu"
+            })
+          )
+        )
       )
     );
   }
