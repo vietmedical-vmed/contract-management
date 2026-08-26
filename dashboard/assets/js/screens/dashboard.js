@@ -7,25 +7,78 @@
 
   function fmt(n) { return (n || 0).toLocaleString("vi-VN"); }
 
-  function AlertRow({ items, title, color, emptyMsg }) {
-    return el("div", { className: "bg-white rounded-xl shadow-sm p-5" },
-      el("h3", { className: "font-semibold mb-3 flex items-center gap-2", style: { color: "#1c1e21" } },
-        el("span", { className: "w-2 h-2 rounded-full inline-block", style: { background: color } }),
-        title
-      ),
-      items.length === 0
+  function SectionHeader({ title, color }) {
+    return el("h3", { className: "font-semibold mb-3 flex items-center gap-2 text-sm", style: { color: "#1c1e21" } },
+      el("span", { className: "w-2 h-2 rounded-full inline-block shrink-0", style: { background: color } }),
+      title
+    );
+  }
+
+  function ExpiryTable({ alerts, title, emptyMsg }) {
+    return el("div", null,
+      el(SectionHeader, { title: title, color: "#f59e0b" }),
+      alerts.length === 0
         ? el("p", { className: "text-sm", style: { color: "#65676b" } }, emptyMsg)
-        : el("div", { className: "space-y-2" },
-            items.slice(0, 10).map(function (it, i) {
-              return el("div", { key: i, className: "flex items-center justify-between text-sm py-2 border-b last:border-0", style: { borderColor: "#f0f2f5" } },
-                el("div", null,
-                  el("span", { className: "font-medium", style: { color: "#1c1e21" } }, it.label),
-                  el("span", { className: "ml-2", style: { color: "#65676b" } }, it.sub)
+        : el("div", { className: "overflow-x-auto", style: { margin: "0 -4px" } },
+            el("table", { className: "w-full text-xs", style: { borderCollapse: "collapse" } },
+              el("thead", null,
+                el("tr", { style: { borderBottom: "1px solid #e5e7eb" } },
+                  el("th", { className: "text-left py-2 px-2 font-medium", style: { color: "#9ca3af" } }, "Số HĐ"),
+                  el("th", { className: "text-left py-2 px-2 font-medium", style: { color: "#9ca3af" } }, "Khách hàng"),
+                  el("th", { className: "text-right py-2 px-2 font-medium", style: { color: "#9ca3af", whiteSpace: "nowrap" } }, "Còn lại")
+                )
+              ),
+              el("tbody", null,
+                alerts.map(function (a, i) {
+                  var badgeBg = a.days_remaining <= 7 ? "#dc2626" : a.days_remaining <= 15 ? "#f59e0b" : "#6b7280";
+                  return el("tr", { key: i, style: { borderBottom: "1px solid #f3f4f6" } },
+                    el("td", { className: "py-2 px-2 font-medium whitespace-nowrap", style: { color: "#1c1e21", maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis" } }, a.so_hd || a.ma_hd),
+                    el("td", { className: "py-2 px-2", style: { color: "#65676b", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, a.ten_kh),
+                    el("td", { className: "py-2 px-2 text-right whitespace-nowrap" },
+                      el("span", {
+                        className: "inline-block px-2 py-0.5 rounded-full text-white font-medium",
+                        style: { background: badgeBg, fontSize: "11px" }
+                      }, a.days_remaining + " ngày")
+                    )
+                  );
+                })
+              )
+            )
+          )
+    );
+  }
+
+  function QuantityTable({ alerts, title, emptyMsg }) {
+    return el("div", null,
+      el(SectionHeader, { title: title, color: "#dc2626" }),
+      alerts.length === 0
+        ? el("p", { className: "text-sm", style: { color: "#65676b" } }, emptyMsg)
+        : el("div", { className: "space-y-3" },
+            alerts.map(function (a, i) {
+              var slHd = a.so_luong_hd || 1;
+              var conLai = a.so_luong_con_lai || 0;
+              var daBan = slHd - conLai;
+              var pct = Math.min(Math.round((daBan / slHd) * 100), 100);
+              var barColor = a.days_supply <= 5 ? "#dc2626" : a.days_supply <= 10 ? "#f59e0b" : "#3b82f6";
+              return el("div", { key: i, style: { padding: "8px 0", borderBottom: i < alerts.length - 1 ? "1px solid #f3f4f6" : "none" } },
+                el("div", { className: "flex items-start justify-between gap-2 mb-1" },
+                  el("div", { style: { minWidth: 0, flex: 1 } },
+                    el("div", { className: "font-medium text-xs", style: { color: "#1c1e21", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, a.ten_hang_hoa),
+                    el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, (a.so_hd || a.ma_hd))
+                  ),
+                  el("span", {
+                    className: "shrink-0 px-2 py-0.5 rounded-full text-white font-medium",
+                    style: { background: barColor, fontSize: "11px", whiteSpace: "nowrap" }
+                  }, "~" + a.days_supply + " ngày")
                 ),
-                el("span", {
-                  className: "px-2 py-0.5 rounded-full text-xs font-medium text-white",
-                  style: { background: it.urgent ? "#dc2626" : "#f59e0b" }
-                }, it.badge)
+                el("div", { className: "flex items-center gap-2" },
+                  el("div", { style: { flex: 1, height: "6px", background: "#f3f4f6", borderRadius: "3px", overflow: "hidden" } },
+                    el("div", { style: { width: pct + "%", height: "100%", background: barColor, borderRadius: "3px", transition: "width 0.3s" } })
+                  ),
+                  el("span", { className: "text-xs shrink-0", style: { color: "#9ca3af", minWidth: "70px", textAlign: "right" } },
+                    fmt(conLai) + " / " + fmt(slHd)
+                  )
+                )
               );
             })
           )
@@ -63,23 +116,8 @@
     var data = mienTab === "Miền Bắc" ? dataBac : dataNam;
     if (!data) return null;
 
-    var expiryAlerts = (data.expiry_alerts || []).map(function (a) {
-      return {
-        label: a.so_hd || a.ma_hd,
-        sub: a.ten_kh,
-        badge: a.days_remaining + " ngày",
-        urgent: a.days_remaining <= 15,
-      };
-    });
-
-    var quantityAlerts = (data.quantity_alerts || []).map(function (a) {
-      return {
-        label: a.ten_hang_hoa,
-        sub: (a.so_hd || a.ma_hd) + " · còn " + fmt(a.so_luong_con_lai),
-        badge: "còn ~" + a.days_supply + " ngày",
-        urgent: a.days_supply <= 10,
-      };
-    });
+    var expiryAlerts = data.expiry_alerts || [];
+    var quantityAlerts = data.quantity_alerts || [];
 
     return el("div", { className: "space-y-4" },
       // KPI cards
@@ -149,16 +187,14 @@
         ),
         el("div", { className: "p-5" },
           el("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" },
-            el(AlertRow, {
+            el(ExpiryTable, {
               title: "HĐ sắp hết hạn (" + (data.max_warn_days || 30) + " ngày)",
-              items: expiryAlerts,
-              color: "#f59e0b",
+              alerts: expiryAlerts,
               emptyMsg: "Không có hợp đồng nào sắp hết hạn"
             }),
-            el(AlertRow, {
+            el(QuantityTable, {
               title: "SP sắp hết thầu (" + (data.max_qty_warn_days || 20) + " ngày)",
-              items: quantityAlerts,
-              color: "#dc2626",
+              alerts: quantityAlerts,
               emptyMsg: "Không có sản phẩm nào sắp hết thầu"
             })
           )
