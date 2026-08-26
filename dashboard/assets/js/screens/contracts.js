@@ -187,18 +187,18 @@
       el("div", { className: "bg-white rounded-xl shadow-sm px-4 py-2.5 flex flex-wrap items-center gap-3" },
         el("span", { className: "text-xs font-semibold uppercase", style: { color: "#9ca3af", letterSpacing: "0.05em" } }, "Lọc"),
         el("select", {
-          value: filters.nhom_sp, onChange: e => { F.set({ nhom_sp: e.target.value }); setPage(1); },
-          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
-        },
-          el("option", { value: "" }, "Nhóm SP: tất cả"),
-          nhomSpOptions.map(k => el("option", { key: k, value: k }, k))
-        ),
-        el("select", {
           value: filters.bu, onChange: e => { F.set({ bu: e.target.value }); setPage(1); },
           className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
         },
           el("option", { value: "" }, "BU: tất cả"),
           buOptions.map(k => el("option", { key: k, value: k }, k))
+        ),
+        el("select", {
+          value: filters.nhom_sp, onChange: e => { F.set({ nhom_sp: e.target.value }); setPage(1); },
+          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
+        },
+          el("option", { value: "" }, "Nhóm SP: tất cả"),
+          nhomSpOptions.map(k => el("option", { key: k, value: k }, k))
         ),
         el("div", { style: { flex: 1 } }),
         el("input", {
