@@ -113,10 +113,10 @@
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, it.ma_ncc || "—"),
                       el("td", { className: "px-3 py-2.5 max-w-[300px]" }, it.ten_hang_hoa || "—"),
-                      el("td", { className: "px-3 py-2.5 text-center" }, fmt(it.so_luong)),
+                      el("td", { className: "px-3 py-2.5 text-center" }, fmt(it.so_luong_hd)),
                       el("td", { className: "px-3 py-2.5 text-center" }, fmt(it.so_luong_da_ban || 0)),
-                      el("td", { className: "px-3 py-2.5 text-center font-medium" }, fmt(conLai)),
-                      el("td", { className: "px-3 py-2.5 min-w-[120px]" }, el(ProgressBar, { current: conLai, total: it.so_luong })),
+                      el("td", { className: "px-3 py-2.5 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
+                      el("td", { className: "px-3 py-2.5 min-w-[120px]" }, it.is_bv_tu ? el("span", { className: "text-gray-400" }, "—") : el(ProgressBar, { current: conLai, total: it.so_luong_hd })),
                       el("td", { className: "px-3 py-2.5 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
                       el("td", { className: "px-3 py-2.5 text-center whitespace-nowrap" }, fmtMoney(it.tong_tien)),
                     );

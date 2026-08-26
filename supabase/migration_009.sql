@@ -40,7 +40,8 @@ SELECT
         SELECT 1 FROM shared.dm_vat_tu dmv
         WHERE dmv.ma_ncc = ig.ma_ncc
         AND dmv.bu IN ('CH&CS', 'CTTM & CTUT', 'THNS &CSVT', 'THNS & CSVT')
-    ) AS is_ngoai_khoa
+    ) AS is_ngoai_khoa,
+    (kh.type_lvl2 = 'Tư') AS is_bv_tu
 FROM items_grouped ig
 JOIN contract_contracts cc ON cc.ma_hd = ig.ma_hd
 LEFT JOIN shared.dm_khach_hang kh ON kh.customer_id = cc.ma_kh

@@ -114,8 +114,8 @@
                           el("td", { className: "px-3 py-2 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
                           el("td", { className: "px-3 py-2 text-center" }, fmt(it.so_luong_hd)),
                           el("td", { className: "px-3 py-2 text-center" }, fmt(it.so_luong_da_ban || 0)),
-                          el("td", { className: "px-3 py-2 text-center font-medium" }, fmt(conLai)),
-                          el("td", { className: "px-3 py-2 whitespace-nowrap" }, daysSupplyBadge(conLai, it.avg_daily_3m))
+                          el("td", { className: "px-3 py-2 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
+                          el("td", { className: "px-3 py-2 whitespace-nowrap" }, it.is_bv_tu ? "—" : daysSupplyBadge(conLai, it.avg_daily_3m))
                         );
                       })
                     )

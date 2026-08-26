@@ -336,6 +336,7 @@ async function handleAction(
 
       const quantity: any[] = [];
       for (const it of itemsRaw || []) {
+        if (it.is_bv_tu) continue;
         const conLai = it.so_luong_con_lai ?? 0;
         const avgDaily = it.avg_daily_3m ?? 0;
         if (avgDaily <= 0) continue;
@@ -448,6 +449,7 @@ async function handleAction(
 
       const quantityAlerts: any[] = [];
       for (const it of itemsRaw || []) {
+        if (it.is_bv_tu) continue;
         if (filterMaHdSet && !filterMaHdSet.has(it.ma_hd)) continue;
         const conLai = it.so_luong_con_lai ?? 0;
         const avgDaily = it.avg_daily_3m ?? 0;
