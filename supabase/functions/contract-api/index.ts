@@ -95,9 +95,7 @@ function sanitizeSearch(s: string): string {
   return String(s ?? "").replace(/[,()\\%]/g, " ").trim();
 }
 
-const NGOAI_KHOA_BUS = ['CH&CS', 'CTTM & CTUT', 'THNS &CSVT', 'THNS & CSVT'];
-const DISPLAY_BUS = ['CH&CS', 'CTTM & CTUT', 'THNS & CSVT'];
-const BU_ALIASES: Record<string, string[]> = { 'THNS & CSVT': ['THNS &CSVT', 'THNS & CSVT'] };
+const NGOAI_KHOA_BUS = ['CH&CS', 'CTTM & CTUT', 'THNS & CSVT'];
 
 async function resolveNhomSp(admin: SupabaseClient, nhomSp: string): Promise<string[]> {
   const { data: nccData } = await admin
@@ -118,11 +116,10 @@ async function resolveNhomSp(admin: SupabaseClient, nhomSp: string): Promise<str
 }
 
 async function resolveBu(admin: SupabaseClient, bu: string): Promise<string[]> {
-  const variants = BU_ALIASES[bu] || [bu];
   const { data: nccData } = await admin
     .schema("shared").from("dm_vat_tu")
     .select("ma_ncc")
-    .in("bu", variants);
+    .eq("bu", bu);
   const nccList = (nccData || []).map((r: any) => r.ma_ncc).filter(Boolean);
   if (nccList.length === 0) return [];
   const allMaHd: string[] = [];
@@ -137,7 +134,7 @@ async function resolveBu(admin: SupabaseClient, bu: string): Promise<string[]> {
 }
 
 async function getBuList(): Promise<string[]> {
-  return [...DISPLAY_BUS].sort();
+  return [...NGOAI_KHOA_BUS].sort();
 }
 
 async function getNhomSpList(admin: SupabaseClient): Promise<string[]> {
