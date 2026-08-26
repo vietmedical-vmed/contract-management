@@ -17,13 +17,6 @@
     return el("span", { className: "text-xs font-medium", style: { color: "#22c55e" } }, daysRemaining + " ngày");
   }
 
-  function statusLabel(daysRemaining) {
-    if (daysRemaining === null || daysRemaining === undefined) return "—";
-    if (daysRemaining <= 0) return "Hết hạn";
-    if (daysRemaining <= 30) return "Sắp hết hạn";
-    return "Còn hạn";
-  }
-
   function daysSupplyBadge(conLai, avgDaily) {
     if (!avgDaily || avgDaily <= 0) return el("span", { className: "text-xs text-gray-400" }, "—");
     const days = Math.floor(conLai / avgDaily);
@@ -32,69 +25,36 @@
     return el("span", { className: "text-xs font-medium", style: { color: "#22c55e" } }, days + " ngày");
   }
 
-  function ItemsModal({ maHd, onClose }) {
+  function ExpandedRow({ maHd, colSpan }) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [contractInfo, setContractInfo] = useState(null);
 
     useEffect(() => {
       api("contract-detail", { ma_hd: maHd })
-        .then(res => {
-          setItems(res.items || []);
-          setContractInfo(res.contract || null);
-        })
+        .then(res => setItems(res.items || []))
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
     }, [maHd]);
 
-    useEffect(() => {
-      function onKey(e) { if (e.key === "Escape") onClose(); }
-      document.addEventListener("keydown", onKey);
-      return () => document.removeEventListener("keydown", onKey);
-    }, [onClose]);
-
-    return el("div", {
-      className: "fixed inset-0 z-50 flex items-center justify-center",
-      style: { background: "rgba(0,0,0,0.5)" },
-      onClick: e => { if (e.target === e.currentTarget) onClose(); }
-    },
-      el("div", {
-        className: "bg-white rounded-xl shadow-2xl w-full max-h-[85vh] flex flex-col",
-        style: { maxWidth: "1300px", margin: "16px" }
-      },
-        // Header
-        el("div", { className: "flex items-center justify-between px-5 py-3 border-b shrink-0", style: { borderColor: "#f0f2f5" } },
-          el("div", null,
-            el("h3", { className: "font-bold text-base", style: { color: "#1c1e21" } }, "Sản phẩm hợp đồng " + maHd),
-            contractInfo && el("p", { className: "text-xs mt-0.5", style: { color: "#65676b" } },
-              contractInfo.ten_kh + " · " + statusLabel(contractInfo.thoi_han ? Math.ceil((new Date(contractInfo.thoi_han) - new Date()) / 86400000) : null)
-            )
-          ),
-          el("button", {
-            onClick: onClose,
-            className: "w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-lg",
-            style: { color: "#65676b" }
-          }, "✕")
-        ),
-
-        // Body
-        el("div", { className: "overflow-auto flex-1" },
+    return el("tr", null,
+      el("td", { colSpan, className: "p-0" },
+        el("div", { style: { background: "#f8f9fb", borderBottom: "2px solid #e5e7eb", padding: "8px 12px 8px 32px" } },
           loading
-            ? el("div", { className: "text-center py-12 text-gray-400" }, "Đang tải...")
+            ? el("div", { className: "text-center py-4 text-gray-400 text-xs" }, "Đang tải sản phẩm...")
             : error
-              ? el("div", { className: "text-center py-12 text-red-500" }, "Lỗi: " + error)
+              ? el("div", { className: "text-center py-4 text-red-500 text-xs" }, "Lỗi: " + error)
               : items.length === 0
-                ? el("div", { className: "text-center py-12 text-gray-400" }, "Không có sản phẩm")
-                : el("table", { className: "w-full text-sm" },
+                ? el("div", { className: "text-center py-4 text-gray-400 text-xs" }, "Không có sản phẩm")
+                : el("table", { className: "w-full text-xs" },
                     el("thead", null,
-                      el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
-                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "SL thầu còn lại", "Cảnh báo"].map(h =>
+                      el("tr", { style: { borderBottom: "1px solid #e5e7eb" } },
+                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "Còn lại", "Cảnh báo"].map(h =>
                           el("th", {
                             key: h,
-                            className: "px-3 py-2.5 font-medium whitespace-nowrap sticky top-0 " +
-                              (["#", "Đơn giá", "SL thầu", "SL bán", "SL thầu còn lại"].includes(h) ? "text-center" : "text-left"),
-                            style: { color: "#65676b", background: "#f8f9fa" }
+                            className: "px-2 py-1.5 font-medium whitespace-nowrap " +
+                              (["#", "Đơn giá", "SL thầu", "SL bán", "Còn lại"].includes(h) ? "text-center" : "text-left"),
+                            style: { color: "#65676b" }
                           }, h)
                         )
                       )
@@ -104,27 +64,24 @@
                         const conLai = it.so_luong_con_lai || 0;
                         return el("tr", {
                           key: it.id || i,
-                          className: "border-b hover:bg-gray-50",
-                          style: { borderColor: "#f0f2f5" }
+                          style: { borderBottom: "1px solid #f0f2f5" }
                         },
-                          el("td", { className: "px-3 py-2 text-center text-gray-400" }, i + 1),
-                          el("td", { className: "px-3 py-2 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
-                          el("td", { className: "px-3 py-2 whitespace-nowrap" }, it.ma_ncc || "—"),
-                          el("td", { className: "px-3 py-2 max-w-[250px] truncate" }, it.ten_hang_hoa || "—"),
-                          el("td", { className: "px-3 py-2 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
-                          el("td", { className: "px-3 py-2 text-center" }, fmt(it.so_luong_hd)),
-                          el("td", { className: "px-3 py-2 text-center" }, fmt(it.so_luong_da_ban || 0)),
-                          el("td", { className: "px-3 py-2 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
-                          el("td", { className: "px-3 py-2 whitespace-nowrap" }, it.is_bv_tu ? "—" : daysSupplyBadge(conLai, it.avg_daily_3m))
+                          el("td", { className: "px-2 py-1.5 text-center text-gray-400" }, i + 1),
+                          el("td", { className: "px-2 py-1.5 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
+                          el("td", { className: "px-2 py-1.5 whitespace-nowrap" }, it.ma_ncc || "—"),
+                          el("td", { className: "px-2 py-1.5 max-w-[220px] truncate" }, it.ten_hang_hoa || "—"),
+                          el("td", { className: "px-2 py-1.5 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
+                          el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_hd)),
+                          el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_da_ban || 0)),
+                          el("td", { className: "px-2 py-1.5 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
+                          el("td", { className: "px-2 py-1.5 whitespace-nowrap" }, it.is_bv_tu ? "—" : daysSupplyBadge(conLai, it.avg_daily_3m))
                         );
                       })
                     )
-                  )
-        ),
-
-        // Footer
-        el("div", { className: "px-5 py-2.5 border-t text-xs shrink-0", style: { borderColor: "#f0f2f5", color: "#65676b" } },
-          "Tổng: " + items.length + " sản phẩm · Cảnh báo = SL thầu còn lại ÷ TB bán/ngày (3 tháng)"
+                  ),
+          items.length > 0 && !loading && el("div", { className: "text-xs mt-1", style: { color: "#9ca3af" } },
+            items.length + " sản phẩm · Cảnh báo = SL còn lại ÷ TB bán/ngày (3 tháng)"
+          )
         )
       )
     );
@@ -141,7 +98,7 @@
     const [total, setTotal] = useState(0);
     const [buOptions, setBuOptions] = useState([]);
     const [nhomSpOptions, setNhomSpOptions] = useState([]);
-    const [popupMaHd, setPopupMaHd] = useState(null);
+    const [expandedSet, setExpandedSet] = useState({});
     const PAGE_SIZE = 30;
 
     const load = useCallback(() => {
@@ -163,8 +120,15 @@
 
     const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
+    function toggleExpand(maHd) {
+      setExpandedSet(prev => {
+        const next = Object.assign({}, prev);
+        if (next[maHd]) delete next[maHd]; else next[maHd] = true;
+        return next;
+      });
+    }
+
     return el("div", { className: "space-y-4" },
-      popupMaHd && el(ItemsModal, { maHd: popupMaHd, onClose: () => setPopupMaHd(null) }),
 
       // Filters
       el("div", { className: "bg-white rounded-xl shadow-sm p-4" },
@@ -233,6 +197,7 @@
           el("table", { className: "w-full text-sm" },
             el("thead", null,
               el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
+                el("th", { className: "w-8", style: { color: "#65676b" } }),
                 ["Mã HĐ", "Số HĐ", "Mã KH", "Khách hàng", "Miền", "Ngày ký", "Thời hạn", "Còn lại", "PS", "SO"].map(h =>
                   el("th", {
                     key: h,
@@ -245,33 +210,42 @@
             ),
             el("tbody", null,
               loading
-                ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
+                ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
                 : error
-                  ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
+                  ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
                   : contracts.length === 0
-                    ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
-                    : contracts.map(c =>
-                        el("tr", {
-                          key: c.ma_hd,
-                          className: "border-b hover:bg-gray-50 transition",
-                          style: { borderColor: "#f0f2f5" }
-                        },
-                          el("td", {
-                            className: "px-3 py-2.5 font-bold whitespace-nowrap cursor-pointer hover:underline",
-                            style: { color: "#1877f2" },
-                            onClick: () => setPopupMaHd(c.ma_hd)
-                          }, c.ma_hd),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ma_kh || "—"),
-                          el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.mien || "—"),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.ngay_ky)),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.thoi_han)),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, statusBadge(c.days_remaining)),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_ps || "—"),
-                          el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_so || "—"),
-                        )
-                      )
+                    ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
+                    : contracts.flatMap(c => {
+                        const isOpen = !!expandedSet[c.ma_hd];
+                        return [
+                          el("tr", {
+                            key: c.ma_hd,
+                            className: "border-b hover:bg-gray-50 transition cursor-pointer" + (isOpen ? " bg-blue-50" : ""),
+                            style: { borderColor: isOpen ? "#dbeafe" : "#f0f2f5" },
+                            onClick: () => toggleExpand(c.ma_hd)
+                          },
+                            el("td", { className: "pl-2 pr-0 py-2.5 text-center" },
+                              el("span", {
+                                style: { display: "inline-block", transition: "transform 0.2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", color: "#9ca3af", fontSize: "14px" }
+                              }, "▶")
+                            ),
+                            el("td", {
+                              className: "px-3 py-2.5 font-bold whitespace-nowrap",
+                              style: { color: "#1877f2" }
+                            }, c.ma_hd),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ma_kh || "—"),
+                            el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.mien || "—"),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.ngay_ky)),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.thoi_han)),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, statusBadge(c.days_remaining)),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_ps || "—"),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_so || "—"),
+                          ),
+                          isOpen && el(ExpandedRow, { key: c.ma_hd + "-items", maHd: c.ma_hd, colSpan: 11 })
+                        ];
+                      })
             )
           )
         ),
