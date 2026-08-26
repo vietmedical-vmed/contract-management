@@ -113,14 +113,18 @@
     const [nhomSpOptions, setNhomSpOptions] = useState([]);
     const [expandedSet, setExpandedSet] = useState({});
     const [mienTab, setMienTab] = useState("Miền Bắc");
-    const [kpi, setKpi] = useState(null);
+    const [kpiBac, setKpiBac] = useState(null);
+    const [kpiNam, setKpiNam] = useState(null);
     const PAGE_SIZE = 30;
 
     useEffect(() => {
-      api("dashboard-summary", { bu: filters.bu, mien: mienTab, nhom_sp: filters.nhom_sp })
-        .then(res => setKpi(res))
-        .catch(() => {});
-    }, [filters.bu, mienTab, filters.nhom_sp]);
+      api("dashboard-summary", { bu: filters.bu, mien: "Miền Bắc", nhom_sp: filters.nhom_sp })
+        .then(res => setKpiBac(res)).catch(() => {});
+      api("dashboard-summary", { bu: filters.bu, mien: "Miền Nam", nhom_sp: filters.nhom_sp })
+        .then(res => setKpiNam(res)).catch(() => {});
+    }, [filters.bu, filters.nhom_sp]);
+
+    const kpi = mienTab === "Miền Bắc" ? kpiBac : kpiNam;
 
     const load = useCallback(() => {
       setLoading(true);
@@ -151,43 +155,6 @@
 
     return el("div", { className: "space-y-4" },
 
-      // Filters
-      el("div", { className: "bg-white rounded-xl shadow-sm p-4" },
-        el("div", { className: "flex flex-wrap gap-3 items-end" },
-          el("div", { className: "flex-1 min-w-[200px]" },
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Tìm kiếm"),
-            el("input", {
-              type: "text", placeholder: "Mã HĐ, số HĐ, tên KH...",
-              value: search, onChange: e => { setSearch(e.target.value); setPage(1); },
-              className: "w-full px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            })
-          ),
-          el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "BU"),
-            el("select", {
-              value: filters.bu, onChange: e => { F.set({ bu: e.target.value }); setPage(1); },
-              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            },
-              el("option", { value: "" }, "Tất cả"),
-              buOptions.map(k => el("option", { key: k, value: k }, k))
-            )
-          ),
-          el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Nhóm SP"),
-            el("select", {
-              value: filters.nhom_sp, onChange: e => { F.set({ nhom_sp: e.target.value }); setPage(1); },
-              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            },
-              el("option", { value: "" }, "Tất cả"),
-              nhomSpOptions.map(k => el("option", { key: k, value: k }, k))
-            )
-          ),
-        ),
-        el("div", { className: "text-xs mt-2", style: { color: "#65676b" } },
-          "Hiển thị: " + fmt(total) + " hợp đồng · Trang " + page + "/" + totalPages
-        )
-      ),
-
       // KPI cards
       kpi && el("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" },
         [
@@ -216,10 +183,35 @@
         })
       ),
 
+      // Compact filter bar
+      el("div", { className: "bg-white rounded-xl shadow-sm px-4 py-2.5 flex flex-wrap items-center gap-3" },
+        el("span", { className: "text-xs font-semibold uppercase", style: { color: "#9ca3af", letterSpacing: "0.05em" } }, "Lọc"),
+        el("select", {
+          value: filters.nhom_sp, onChange: e => { F.set({ nhom_sp: e.target.value }); setPage(1); },
+          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
+        },
+          el("option", { value: "" }, "Nhóm SP: tất cả"),
+          nhomSpOptions.map(k => el("option", { key: k, value: k }, k))
+        ),
+        el("select", {
+          value: filters.bu, onChange: e => { F.set({ bu: e.target.value }); setPage(1); },
+          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
+        },
+          el("option", { value: "" }, "BU: tất cả"),
+          buOptions.map(k => el("option", { key: k, value: k }, k))
+        ),
+        el("div", { style: { flex: 1 } }),
+        el("input", {
+          type: "text", placeholder: "Tìm KH, sản phẩm, mã HĐ...",
+          value: search, onChange: e => { setSearch(e.target.value); setPage(1); },
+          className: "px-3 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1", width: "220px" }
+        })
+      ),
+
       // Table
       el("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden" },
         el("div", { className: "flex border-b", style: { borderColor: "#dadde1" } },
-          ["Miền Bắc", "Miền Nam"].map(m =>
+          [{ m: "Miền Bắc", kd: kpiBac }, { m: "Miền Nam", kd: kpiNam }].map(({ m, kd }) =>
             el("button", {
               key: m,
               onClick: () => { setMienTab(m); setPage(1); setExpandedSet({}); },
@@ -232,10 +224,10 @@
                 cursor: "pointer",
                 marginBottom: "-1px"
               }
-            }, m, kpi && mienTab === m && el("span", {
+            }, m, kd && el("span", {
               className: "ml-1.5 text-xs font-normal",
               style: { color: mienTab === m ? "#1877f2" : "#9ca3af" }
-            }, "(" + fmt(kpi.total_contracts) + ")"))
+            }, "(" + fmt(kd.total_contracts) + ")"))
           )
         ),
         el("div", { className: "overflow-x-auto" },
