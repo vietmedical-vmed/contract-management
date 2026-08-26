@@ -184,7 +184,7 @@
           ),
         ),
         el("div", { className: "text-xs mt-2", style: { color: "#65676b" } },
-          "Tổng: " + fmt(total) + " hợp đồng · Trang " + page + "/" + totalPages
+          "Hiển thị: " + fmt(total) + " hợp đồng · Trang " + page + "/" + totalPages
         )
       ),
 
@@ -232,10 +232,10 @@
                 cursor: "pointer",
                 marginBottom: "-1px"
               }
-            }, m, total > 0 && mienTab === m && el("span", {
+            }, m, kpi && mienTab === m && el("span", {
               className: "ml-1.5 text-xs font-normal",
               style: { color: mienTab === m ? "#1877f2" : "#9ca3af" }
-            }, "(" + fmt(total) + ")"))
+            }, "(" + fmt(kpi.total_contracts) + ")"))
           )
         ),
         el("div", { className: "overflow-x-auto" },
