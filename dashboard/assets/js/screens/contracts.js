@@ -113,7 +113,14 @@
     const [nhomSpOptions, setNhomSpOptions] = useState([]);
     const [expandedSet, setExpandedSet] = useState({});
     const [mienTab, setMienTab] = useState("Miền Bắc");
+    const [kpi, setKpi] = useState(null);
     const PAGE_SIZE = 30;
+
+    useEffect(() => {
+      api("dashboard-summary", { bu: filters.bu, mien: mienTab, nhom_sp: filters.nhom_sp })
+        .then(res => setKpi(res))
+        .catch(() => {});
+    }, [filters.bu, mienTab, filters.nhom_sp]);
 
     const load = useCallback(() => {
       setLoading(true);
@@ -175,23 +182,38 @@
               nhomSpOptions.map(k => el("option", { key: k, value: k }, k))
             )
           ),
-          el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Trạng thái"),
-            el("select", {
-              value: filterStatus, onChange: e => { setFilterStatus(e.target.value); setPage(1); },
-              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            },
-              el("option", { value: "all" }, "Tất cả"),
-              el("option", { value: "con_han" }, "Còn hạn"),
-              el("option", { value: "sap_het" }, "Sắp hết hạn"),
-              el("option", { value: "het_han" }, "Hết hạn"),
-              el("option", { value: "ky_moi" }, "Ký mới")
-            )
-          ),
         ),
         el("div", { className: "text-xs mt-2", style: { color: "#65676b" } },
           "Tổng: " + fmt(total) + " hợp đồng · Trang " + page + "/" + totalPages
         )
+      ),
+
+      // KPI cards
+      kpi && el("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" },
+        [
+          { key: "all", label: "Tổng hợp đồng", value: kpi.total_contracts, color: "#1877f2", sub: "Năm tài chính " + (kpi.fy_label || "") },
+          { key: "con_han", label: "Còn hạn", value: kpi.con_han_count, color: "#22c55e", sub: "Không hết hạn trong năm" },
+          { key: "sap_het", label: "Sắp hết hạn", value: kpi.sap_het_han_count, color: "#f59e0b", sub: "Hết hạn trong năm, chưa hết" },
+          { key: "het_han", label: "Hết hạn", value: kpi.het_han_count, color: "#6b7280", sub: "Đã hết hạn trong năm" },
+          { key: "ky_moi", label: "Ký mới", value: kpi.ky_moi_count, color: "#8b5cf6", sub: "Ký mới trong năm" },
+        ].map(c => {
+          const active = filterStatus === c.key;
+          return el("div", {
+            key: c.key,
+            className: "bg-white rounded-xl shadow-sm p-4 cursor-pointer transition",
+            style: {
+              borderLeft: "4px solid " + c.color,
+              outline: active ? "2px solid " + c.color : "none",
+              outlineOffset: "-1px",
+              opacity: filterStatus !== "all" && !active ? 0.5 : 1,
+            },
+            onClick: () => { setFilterStatus(active && c.key !== "all" ? "all" : c.key); setPage(1); setExpandedSet({}); }
+          },
+            el("div", { className: "text-xs font-medium", style: { color: "#65676b" } }, c.label),
+            el("div", { className: "text-2xl font-bold mt-0.5", style: { color: c.color } }, fmt(c.value)),
+            el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, c.sub)
+          );
+        })
       ),
 
       // Table

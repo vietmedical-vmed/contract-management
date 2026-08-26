@@ -138,7 +138,7 @@
         el(KPICard, {
           label: "Sắp hết hạn", value: data.sap_het_han_count, color: "#f59e0b",
           sub: "Hết hạn trong năm, chưa hết",
-          onClick: function () { R.navigate("/alerts"); }
+          onClick: function () { R.navigate("/contracts"); }
         }),
         el(KPICard, { label: "Hết hạn", value: data.het_han_count, color: "#6b7280", sub: "Đã hết hạn trong năm" }),
         el(KPICard, { label: "Ký mới", value: data.ky_moi_count, color: "#8b5cf6", sub: "Ký mới trong năm" })
