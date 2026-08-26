@@ -44,7 +44,15 @@
 
     useEffect(() => {
       api("contract-detail", { ma_hd: maHd })
-        .then(res => setItems(res.items || []))
+        .then(res => {
+          var sorted = (res.items || []).slice().sort(function (a, b) {
+            var ta = a.so_luong_hd > 0 ? (a.so_luong_hd - (a.so_luong_con_lai || 0)) / a.so_luong_hd : 0;
+            var tb = b.so_luong_hd > 0 ? (b.so_luong_hd - (b.so_luong_con_lai || 0)) / b.so_luong_hd : 0;
+            if (tb !== ta) return tb - ta;
+            return (a.ma_ncc || "").localeCompare(b.ma_ncc || "");
+          });
+          setItems(sorted);
+        })
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
     }, [maHd]);
