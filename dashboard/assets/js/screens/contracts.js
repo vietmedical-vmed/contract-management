@@ -25,6 +25,18 @@
     return el("span", { className: "text-xs font-medium", style: { color: "#22c55e" } }, days + " ngày");
   }
 
+  function progressBar(conLai, total) {
+    if (!total || total <= 0) return el("span", { className: "text-xs text-gray-400" }, "—");
+    var pct = Math.min(100, Math.max(0, ((total - conLai) / total) * 100));
+    var color = pct >= 90 ? "#dc2626" : pct >= 70 ? "#f59e0b" : "#22c55e";
+    return el("div", { className: "flex items-center gap-1.5", style: { minWidth: "90px" } },
+      el("div", { style: { flex: 1, height: "5px", borderRadius: "3px", background: "#f0f2f5" } },
+        el("div", { style: { height: "5px", borderRadius: "3px", width: Math.round(pct) + "%", background: color } })
+      ),
+      el("span", { className: "text-xs font-medium whitespace-nowrap", style: { color } }, Math.round(pct) + "%")
+    );
+  }
+
   function ExpandedRow({ maHd, colSpan }) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -49,7 +61,7 @@
                 : el("table", { className: "w-full text-xs" },
                     el("thead", null,
                       el("tr", { style: { borderBottom: "1px solid #e5e7eb" } },
-                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "Còn lại", "Cảnh báo"].map(h =>
+                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "Còn lại", "Tiến độ", "Cảnh báo"].map(h =>
                           el("th", {
                             key: h,
                             className: "px-2 py-1.5 font-medium whitespace-nowrap " +
@@ -74,6 +86,7 @@
                           el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_hd)),
                           el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_da_ban || 0)),
                           el("td", { className: "px-2 py-1.5 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
+                          el("td", { className: "px-2 py-1.5" }, it.is_bv_tu ? el("span", { className: "text-gray-400" }, "—") : progressBar(conLai, it.so_luong_hd)),
                           el("td", { className: "px-2 py-1.5 whitespace-nowrap" }, it.is_bv_tu ? "—" : daysSupplyBadge(conLai, it.avg_daily_3m))
                         );
                       })
