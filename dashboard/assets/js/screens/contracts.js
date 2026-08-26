@@ -112,12 +112,13 @@
     const [buOptions, setBuOptions] = useState([]);
     const [nhomSpOptions, setNhomSpOptions] = useState([]);
     const [expandedSet, setExpandedSet] = useState({});
+    const [mienTab, setMienTab] = useState("Miền Bắc");
     const PAGE_SIZE = 30;
 
     const load = useCallback(() => {
       setLoading(true);
       api("list-contracts", {
-        search, bu: filters.bu, mien: filters.mien, nhom_sp: filters.nhom_sp, status: filterStatus,
+        search, bu: filters.bu, mien: mienTab, nhom_sp: filters.nhom_sp, status: filterStatus,
         page, page_size: PAGE_SIZE
       })
         .then(res => {
@@ -127,7 +128,7 @@
         })
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
-    }, [search, filters.bu, filters.mien, filters.nhom_sp, filterStatus, page]);
+    }, [search, filters.bu, mienTab, filters.nhom_sp, filterStatus, page]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -165,17 +166,6 @@
             )
           ),
           el("div", null,
-            el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Miền"),
-            el("select", {
-              value: filters.mien, onChange: e => { F.set({ mien: e.target.value }); setPage(1); },
-              className: "px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" }
-            },
-              el("option", { value: "" }, "Tất cả"),
-              el("option", { value: "Miền Bắc" }, "Miền Bắc"),
-              el("option", { value: "Miền Nam" }, "Miền Nam")
-            )
-          ),
-          el("div", null,
             el("label", { className: "text-xs font-medium block mb-1", style: { color: "#65676b" } }, "Nhóm SP"),
             el("select", {
               value: filters.nhom_sp, onChange: e => { F.set({ nhom_sp: e.target.value }); setPage(1); },
@@ -206,12 +196,32 @@
 
       // Table
       el("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden" },
+        el("div", { className: "flex border-b", style: { borderColor: "#dadde1" } },
+          ["Miền Bắc", "Miền Nam"].map(m =>
+            el("button", {
+              key: m,
+              onClick: () => { setMienTab(m); setPage(1); setExpandedSet({}); },
+              className: "px-5 py-2.5 text-sm font-medium relative transition-colors",
+              style: {
+                color: mienTab === m ? "#1877f2" : "#65676b",
+                background: "transparent",
+                border: "none",
+                borderBottom: mienTab === m ? "2px solid #1877f2" : "2px solid transparent",
+                cursor: "pointer",
+                marginBottom: "-1px"
+              }
+            }, m, total > 0 && mienTab === m && el("span", {
+              className: "ml-1.5 text-xs font-normal",
+              style: { color: mienTab === m ? "#1877f2" : "#9ca3af" }
+            }, "(" + fmt(total) + ")"))
+          )
+        ),
         el("div", { className: "overflow-x-auto" },
           el("table", { className: "w-full text-sm" },
             el("thead", null,
               el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
                 el("th", { className: "w-8", style: { color: "#65676b" } }),
-                ["Mã HĐ", "Số HĐ", "Mã KH", "Khách hàng", "Miền", "Ngày ký", "Thời hạn", "Còn lại", "PS", "SO"].map(h =>
+                ["Mã HĐ", "Số HĐ", "Mã KH", "Khách hàng", "Ngày ký", "Thời hạn", "Còn lại", "PS", "SO"].map(h =>
                   el("th", {
                     key: h,
                     className: "px-3 py-2.5 font-medium whitespace-nowrap " +
@@ -223,11 +233,11 @@
             ),
             el("tbody", null,
               loading
-                ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
+                ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
                 : error
-                  ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
+                  ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
                   : contracts.length === 0
-                    ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
+                    ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
                     : contracts.flatMap(c => {
                         const isOpen = !!expandedSet[c.ma_hd];
                         return [
@@ -249,14 +259,13 @@
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ma_kh || "—"),
                             el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
-                            el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.mien || "—"),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.ngay_ky)),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.thoi_han)),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, statusBadge(c.days_remaining)),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_ps || "—"),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_so || "—"),
                           ),
-                          isOpen && el(ExpandedRow, { key: c.ma_hd + "-items", maHd: c.ma_hd, colSpan: 11 })
+                          isOpen && el(ExpandedRow, { key: c.ma_hd + "-items", maHd: c.ma_hd, colSpan: 10 })
                         ];
                       })
             )
