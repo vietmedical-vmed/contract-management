@@ -101,7 +101,7 @@
                     ),
                     el("tbody", null,
                       items.map((it, i) => {
-                        const conLai = (it.so_luong_hd || 0) - (it.so_luong_da_ban || 0);
+                        const conLai = it.so_luong_con_lai || 0;
                         return el("tr", {
                           key: it.id || i,
                           className: "border-b hover:bg-gray-50",

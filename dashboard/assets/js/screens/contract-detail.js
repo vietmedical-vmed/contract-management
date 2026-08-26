@@ -107,7 +107,7 @@
               items.length === 0
                 ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Không có sản phẩm"))
                 : items.map((it, i) => {
-                    const conLai = (it.so_luong || 0) - (it.so_luong_da_ban || 0);
+                    const conLai = it.so_luong_con_lai || 0;
                     return el("tr", { key: it.id || i, className: "border-b", style: { borderColor: "#f0f2f5" } },
                       el("td", { className: "px-3 py-2.5 text-center text-gray-400" }, i + 1),
                       el("td", { className: "px-3 py-2.5 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
