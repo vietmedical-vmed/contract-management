@@ -11,79 +11,78 @@
     { path: "/config",     label: "Cấu hình", roles: ["admin"] },
   ];
 
-  function roleBadge(role) {
-    const colors = { admin: "#7c3aed", manager: "#0891b2", product_manager: "#0891b2", area_manager: "#ea580c", ps: "#16a34a" };
-    const bg = colors[role] || "#6b7280";
-    return h("span", {
-      className: "text-xs text-white px-2 py-0.5 rounded-full font-medium",
-      style: { background: bg }
-    }, (role || "").toUpperCase());
-  }
+  const initials = (u) => {
+    const src = (u.ho_ten || u.username || "").trim();
+    if (!src) return "CT";
+    const parts = src.split(/\s+/);
+    const s = parts.length >= 2 ? parts[0][0] + parts[parts.length - 1][0] : src.slice(0, 2);
+    return s.toUpperCase();
+  };
 
   function Shell({ user, onLogout }) {
     const path = R.useRoute();
     const visibleNav = NAV.filter(n => !n.roles || n.roles.includes(user.role));
     const Screen = R.get(path);
-    const initials = (user.ho_ten || user.username || "?").split(" ").map(w => w[0]).join("").slice(-2).toUpperCase();
+    const subtitle = user.ho_ten || user.username || "—";
+    const ROLE_BADGE = {
+      admin:   { label: "Admin",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
+      manager: { label: "Manager", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+      product_manager: { label: "PM", cls: "bg-violet-50 text-violet-700 border-violet-200" },
+      area_manager: { label: "AM", cls: "bg-teal-50 text-teal-700 border-teal-200" },
+      ps:      { label: "PS",      cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    };
+    const badge = ROLE_BADGE[user.role];
 
-    return h("div", { className: "min-h-screen flex flex-col", style: { background: "#f0f2f5" } },
-      // Header
-      h("header", { className: "sticky top-0 z-30 shadow-sm", style: { background: "#fff", borderBottom: "1px solid #dadde1" } },
-        h("div", { className: "mx-auto px-4 py-3 flex items-center justify-between" },
-          h("div", { className: "flex items-center gap-3" },
-            h("div", {
-              className: "w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold",
-              style: { background: "#1877f2" }
-            }, initials),
-            h("div", null,
-              h("h1", { className: "text-base font-bold leading-tight", style: { color: "#1c1e21" } }, "QUẢN LÝ HỢP ĐỒNG"),
-              h("div", { className: "text-xs", style: { color: "#65676b" } },
-                user.ho_ten || user.username
-              )
-            )
+    return h("div", { className: "min-h-screen bg-slate-50" },
+      h("header", { className: "bg-white border-b border-slate-200" },
+        h("div", { className: "w-full px-4 md:px-6" },
+          h("div", { className: "flex items-start justify-between pt-3 gap-4" },
+            h("div", { className: "flex items-center gap-3" },
+              h("div", {
+                className: "w-11 h-11 rounded-full bg-blue-500 text-white grid place-items-center font-bold text-sm shrink-0",
+              }, initials(user)),
+              h("div", { className: "leading-tight" },
+                h("div", { className: "font-bold text-slate-900 text-base md:text-lg" }, "QUẢN LÝ HỢP ĐỒNG"),
+                h("div", { className: "flex items-center gap-2 mt-0.5" },
+                  h("span", { className: "text-xs text-slate-500" }, subtitle),
+                  badge && h("span", { className: "px-1.5 py-0.5 rounded text-[10px] font-semibold border " + badge.cls }, badge.label),
+                ),
+              ),
+            ),
+            h("div", { className: "flex flex-col items-end gap-2" },
+              h("div", { className: "text-[9px] text-slate-400 italic text-right" },
+                "Designed and developed by ",
+                h("span", { className: "font-semibold text-slate-500 not-italic" }, "Do Hoang Giang"),
+              ),
+              h("div", { className: "flex items-center gap-2" },
+                h("button", {
+                  onClick: () => window.location.reload(),
+                  className: "flex items-center gap-1.5 text-xs text-white bg-blue-500 hover:bg-blue-600 px-2.5 py-1.5 rounded-md",
+                }, h("span", null, "⟳"), "Reload"),
+                h("button", {
+                  onClick: onLogout,
+                  className: "flex items-center gap-1.5 text-xs text-white bg-red-500 hover:bg-red-600 px-2.5 py-1.5 rounded-md",
+                }, h("span", null, "⎋"), "Đăng xuất"),
+              ),
+            ),
           ),
-          h("div", { className: "flex flex-col items-end gap-1" },
-            h("span", { className: "italic", style: { color: "#9ca3af", fontSize: "10px" } }, "Designed and developed by ", h("strong", null, "Do Hoang Giang")),
-            h("div", { className: "flex items-center gap-2" },
-              h("button", {
-                onClick: () => window.location.reload(),
-                className: "px-3 py-1.5 rounded-lg text-sm font-medium text-white",
-                style: { background: "#1877f2" }
-              }, "Reload"),
-              h("button", {
-                onClick: onLogout,
-                className: "px-3 py-1.5 rounded-lg text-sm font-medium text-white",
-                style: { background: "#dc2626" }
-              }, "Đăng xuất")
-            )
-          )
+          h("nav", { className: "flex items-center gap-5 md:gap-6 mt-3 overflow-x-auto overflow-y-hidden" },
+            visibleNav.map((it) => h("button", {
+              key: it.path,
+              onClick: () => R.navigate(it.path),
+              className: "relative px-0.5 pb-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors " +
+                (path === it.path
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-600 hover:text-slate-900"),
+            }, it.label)),
+          ),
         ),
-
-        // Tab nav
-        h("div", { className: "mx-auto px-4 flex gap-1 overflow-x-auto" },
-          visibleNav.map(n =>
-            h("button", {
-              key: n.path,
-              onClick: () => R.navigate(n.path),
-              className: "px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors " +
-                (path === n.path ? "border-blue-600" : "border-transparent hover:border-gray-300"),
-              style: { color: path === n.path ? "#1877f2" : "#65676b" }
-            }, n.label)
-          )
-        )
       ),
-
-      // Main content
-      h("main", { className: "flex-1 mx-auto w-full px-4 py-6" },
+      h("main", { className: "w-full" },
         Screen
           ? h(Screen, { user })
-          : h("div", { className: "text-center py-20 text-gray-400" }, "Trang chưa được xây dựng")
+          : h("div", { className: "p-6 text-slate-500 text-sm" }, "Trang chưa được xây dựng"),
       ),
-
-      // Footer
-      h("footer", { className: "text-center text-xs py-3", style: { color: "#65676b" } },
-        "Contract Management · VMED Group"
-      )
     );
   }
 
