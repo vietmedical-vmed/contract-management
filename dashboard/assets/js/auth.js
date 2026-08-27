@@ -87,9 +87,9 @@
         className: "bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm"
       },
         h("div", { className: "flex flex-col items-center mb-6" },
-          h("img", { src: "logo.png", alt: "VietMedical", className: "h-12 mb-3" }),
-          h("h1", { className: "text-xl font-bold", style: { color: "#1c1e21" } }, "Quản lý Hợp đồng"),
-          h("p", { className: "text-sm mt-1", style: { color: "#65676b" } }, isLogin ? "Đăng nhập để tiếp tục" : "Đổi mật khẩu")
+          h("img", { src: "logo.png", alt: "VietMedical", className: "h-12 mb-4" }),
+          h("h1", { className: "text-lg font-bold text-center uppercase", style: { color: "#1c1e21" } },
+            isLogin ? "QUẢN LÝ HỢP ĐỒNG" : "ĐỔI MẬT KHẨU")
         ),
 
         error && h("div", { className: "flex items-center gap-2 rounded-lg px-3 py-2 mb-4 text-sm", style: { background: "#fee2e2", color: "#dc2626" } },
@@ -118,7 +118,7 @@
           }),
           isLogin && h("label", { className: "flex items-center gap-2 text-sm cursor-pointer", style: { color: "#65676b" } },
             h("input", { type: "checkbox", checked: remember, onChange: (e) => setRemember(e.target.checked) }),
-            "Ghi nhớ đăng nhập"
+            "Ghi nhớ đăng nhập trên thiết bị này"
           ),
           h("button", {
             type: "submit", disabled: loading,
@@ -134,7 +134,9 @@
             className: "text-sm underline", style: { color: "#1877f2" },
           }, isLogin ? "Đổi mật khẩu" : "Quay lại đăng nhập")
         )
-      )
+      ),
+      h("div", { style: { marginTop: 24, textAlign: "center", fontSize: 11, color: "#8a8d91" } },
+        "Designed and developed by Do Hoang Giang")
     );
   }
 
