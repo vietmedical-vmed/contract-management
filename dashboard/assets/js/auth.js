@@ -87,7 +87,7 @@
         className: "bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm"
       },
         h("div", { className: "flex flex-col items-center mb-6" },
-          h("img", { src: "favicon.svg", alt: "VietMedical", className: "w-12 h-12 mb-3" }),
+          h("img", { src: "logo.svg", alt: "VietMedical", className: "h-12 mb-3" }),
           h("h1", { className: "text-xl font-bold", style: { color: "#1c1e21" } }, "Quản lý Hợp đồng"),
           h("p", { className: "text-sm mt-1", style: { color: "#65676b" } }, isLogin ? "Đăng nhập để tiếp tục" : "Đổi mật khẩu")
         ),
