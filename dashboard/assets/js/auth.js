@@ -81,62 +81,72 @@
 
     const isLogin = mode === "login";
 
-    return h("div", { className: "min-h-screen flex items-center justify-center", style: { background: "#f0f2f5" } },
+    const inputStyle = {
+      width: "100%", padding: "8px 12px", border: "1px solid #dadde1", borderRadius: 6,
+      fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 10,
+    };
+
+    return h("div", {
+      style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f0f2f5", padding: 16 },
+    },
       h("form", {
         onSubmit: isLogin ? handleLogin : handleChangePw,
-        className: "bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm"
+        style: {
+          background: "#fff", borderRadius: 8,
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1)",
+          border: "1px solid #dadde1", padding: 24, width: "100%", maxWidth: 360,
+        },
       },
-        h("div", { className: "flex flex-col items-center mb-6" },
-          h("img", { src: "logo.png", alt: "VietMedical", className: "h-12 mb-4" }),
-          h("h1", { className: "text-lg font-bold text-center uppercase", style: { color: "#1c1e21" } },
-            isLogin ? "QUẢN LÝ HỢP ĐỒNG" : "ĐỔI MẬT KHẨU")
+        h("img", {
+          src: "logo.png", alt: "VietMedical",
+          style: { height: 48, display: "block", margin: "0 auto 24px" },
+        }),
+        h("h2", { style: { fontSize: 18, fontWeight: 700, margin: "0 0 20px", textAlign: "center", textTransform: "uppercase" } },
+          isLogin ? "QUẢN LÝ HỢP ĐỒNG" : "ĐỔI MẬT KHẨU"),
+
+        h("input", {
+          autoFocus: true, value: username, onChange: (e) => setUsername(e.target.value),
+          placeholder: "Tài khoản", style: inputStyle, disabled: !isLogin,
+        }),
+        h("input", {
+          type: "password", value: password, onChange: (e) => setPassword(e.target.value),
+          placeholder: isLogin ? "Mật khẩu" : "Mật khẩu cũ",
+          style: { ...inputStyle, marginBottom: !isLogin ? 10 : 0 },
+        }),
+        !isLogin && h("input", {
+          type: "password", value: newPw, onChange: (e) => setNewPw(e.target.value),
+          placeholder: "Mật khẩu mới", style: { ...inputStyle, marginBottom: 0 },
+        }),
+
+        isLogin && h("label", {
+          style: { display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12, color: "#65676b", cursor: "pointer" },
+        },
+          h("input", { type: "checkbox", checked: remember, onChange: (e) => setRemember(e.target.checked) }),
+          "Ghi nhớ đăng nhập trên thiết bị này",
         ),
 
-        error && h("div", { className: "flex items-center gap-2 rounded-lg px-3 py-2 mb-4 text-sm", style: { background: "#fee2e2", color: "#dc2626" } },
-          h(AlertCircle), error
-        ),
+        error && h("div", {
+          style: { marginTop: 12, fontSize: 12, color: "#fa383e", display: "flex", alignItems: "center", gap: 6 },
+        }, h(AlertCircle), " ", error),
 
-        h("div", { className: "space-y-4" },
-          h("input", {
-            type: "text", placeholder: "Tên đăng nhập", value: username,
-            onChange: (e) => setUsername(e.target.value), required: true, autoFocus: true,
-            className: "w-full px-4 py-2.5 rounded-lg border text-sm outline-none focus:ring-2",
-            style: { borderColor: "#dadde1", focusRingColor: "#1877f2" },
-            disabled: !isLogin,
-          }),
-          h("input", {
-            type: "password", placeholder: isLogin ? "Mật khẩu" : "Mật khẩu cũ", value: password,
-            onChange: (e) => setPassword(e.target.value), required: true,
-            className: "w-full px-4 py-2.5 rounded-lg border text-sm outline-none focus:ring-2",
-            style: { borderColor: "#dadde1" },
-          }),
-          !isLogin && h("input", {
-            type: "password", placeholder: "Mật khẩu mới", value: newPw,
-            onChange: (e) => setNewPw(e.target.value), required: true,
-            className: "w-full px-4 py-2.5 rounded-lg border text-sm outline-none focus:ring-2",
-            style: { borderColor: "#dadde1" },
-          }),
-          isLogin && h("label", { className: "flex items-center gap-2 text-sm cursor-pointer", style: { color: "#65676b" } },
-            h("input", { type: "checkbox", checked: remember, onChange: (e) => setRemember(e.target.checked) }),
-            "Ghi nhớ đăng nhập trên thiết bị này"
-          ),
+        h("button", {
+          disabled: loading,
+          style: {
+            width: "100%", marginTop: 16, background: "#1877f2", color: "#fff",
+            padding: "8px 12px", borderRadius: 6, fontSize: 15, fontWeight: 700,
+            border: "none", opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer",
+          },
+        }, loading ? "Đang xử lý..." : (isLogin ? "Đăng nhập" : "Đổi mật khẩu")),
+
+        h("div", { style: { marginTop: 14, textAlign: "center" } },
           h("button", {
-            type: "submit", disabled: loading,
-            className: "w-full py-2.5 rounded-lg text-white font-semibold text-sm transition",
-            style: { background: loading ? "#93c5fd" : "#1877f2" },
-          }, loading ? "Đang xử lý..." : (isLogin ? "Đăng nhập" : "Đổi mật khẩu")),
+            type: "button", onClick: () => { setMode(isLogin ? "change" : "login"); setError(""); },
+            style: { background: "none", border: "none", color: "#1877f2", fontSize: 13, cursor: "pointer", padding: 0 },
+          }, isLogin ? "Đổi mật khẩu" : "Quay lại đăng nhập"),
         ),
-
-        h("div", { className: "mt-4 text-center" },
-          h("button", {
-            type: "button",
-            onClick: () => { setMode(isLogin ? "change" : "login"); setError(""); },
-            className: "text-sm underline", style: { color: "#1877f2" },
-          }, isLogin ? "Đổi mật khẩu" : "Quay lại đăng nhập")
-        )
       ),
       h("div", { style: { marginTop: 24, textAlign: "center", fontSize: 11, color: "#8a8d91" } },
-        "Designed and developed by Do Hoang Giang")
+        "Designed and developed by Do Hoang Giang"),
     );
   }
 
