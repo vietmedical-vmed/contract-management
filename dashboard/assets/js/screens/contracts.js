@@ -296,11 +296,11 @@
             el("thead", null,
               el("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #dadde1" } },
                 el("th", { className: "w-8", style: { color: "#65676b" } }),
-                ["Mã HĐ", "Số HĐ", "Mã KH", "Khách hàng", "Ngày ký", "Thời hạn", "Còn lại", "PS", "SO"].map(h =>
+                ["Mã HĐ", "Số HĐ", "Mã KH", "Khách hàng", "Loại", "Ngày ký", "Thời hạn", "Còn lại", "PS", "SO"].map(h =>
                   el("th", {
                     key: h,
                     className: "px-3 py-2.5 font-medium whitespace-nowrap " +
-                      (["Ngày ký", "Thời hạn", "Còn lại"].includes(h) ? "text-center" : "text-left"),
+                      (["Ngày ký", "Thời hạn", "Còn lại", "Loại"].includes(h) ? "text-center" : "text-left"),
                     style: { color: "#65676b" }
                   }, h)
                 )
@@ -308,11 +308,11 @@
             ),
             el("tbody", null,
               loading
-                ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
+                ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-gray-400" }, "Đang tải..."))
                 : error
-                  ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
+                  ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-red-500" }, "Lỗi: " + error))
                   : contracts.length === 0
-                    ? el("tr", null, el("td", { colSpan: 10, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
+                    ? el("tr", null, el("td", { colSpan: 11, className: "text-center py-8 text-gray-400" }, "Không có dữ liệu"))
                     : contracts.flatMap(c => {
                         const isOpen = !!expandedSet[c.ma_hd];
                         return [
@@ -334,13 +334,19 @@
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.so_hd || "—"),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ma_kh || "—"),
                             el("td", { className: "px-3 py-2.5 max-w-[250px] truncate" }, c.ten_kh || "—"),
+                            el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" },
+                              c.loai_bv ? el("span", {
+                                className: "px-1.5 py-0.5 rounded text-xs font-medium",
+                                style: { background: c.loai_bv === "Công" ? "#dbeafe" : "#fce7f3", color: c.loai_bv === "Công" ? "#1e40af" : "#9d174d" }
+                              }, c.loai_bv) : "—"
+                            ),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.ngay_ky)),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, fmtDate(c.thoi_han)),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap text-center" }, statusBadge(c.days_remaining)),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_ps || "—"),
                             el("td", { className: "px-3 py-2.5 whitespace-nowrap" }, c.ten_so || "—"),
                           ),
-                          isOpen && el(ExpandedRow, { key: c.ma_hd + "-items", maHd: c.ma_hd, colSpan: 10 })
+                          isOpen && el(ExpandedRow, { key: c.ma_hd + "-items", maHd: c.ma_hd, colSpan: 11 })
                         ];
                       })
             )
