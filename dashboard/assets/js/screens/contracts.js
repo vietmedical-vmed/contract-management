@@ -168,7 +168,7 @@
           if (!S) { alert("Thư viện XLSX chưa tải xong, vui lòng thử lại"); return; }
 
           var headers = [
-            "Tên Bệnh viện", "Số hợp đồng", "Ngày ký hđ", "Ngày hết hạn",
+            "Loại BV", "Tên Bệnh viện", "Số hợp đồng", "Ngày ký hđ", "Ngày hết hạn",
             "Thời hạn HĐ", "Sale phụ trách", "Mã chung", "Tên chung",
             "Đơn giá", "Phân loại", "SL trúng thầu", "Sử dụng sd", "Quota Còn lại"
           ];
@@ -176,7 +176,7 @@
           var aoa = [headers];
           res.rows.forEach(function (r) {
             aoa.push([
-              r.ten_kh || "", r.so_hd || "",
+              r.loai_bv || "", r.ten_kh || "", r.so_hd || "",
               parseLocalDate(r.ngay_ky) || "", parseLocalDate(r.thoi_han) || "",
               "", r.ten_ps || "", r.ma_chung || "", r.ten_hang_hoa || "",
               r.don_gia || 0, r.nhom_sp || "",
@@ -187,21 +187,21 @@
           var ws = S.utils.aoa_to_sheet(aoa);
 
           ws["!cols"] = [
-            { wch: 35 }, { wch: 30 }, { wch: 12 }, { wch: 14 },
+            { wch: 8 }, { wch: 35 }, { wch: 30 }, { wch: 12 }, { wch: 14 },
             { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 42 },
             { wch: 15 }, { wch: 15 }, { wch: 14 }, { wch: 12 }, { wch: 14 }
           ];
 
           for (var i = 0; i < res.rows.length; i++) {
             var rn = i + 2;
-            ws[S.utils.encode_cell({ r: i + 1, c: 4 })] = { t: "s", f: 'IF(D' + rn + '<TODAY(),"hết hạn","còn hạn")' };
-            ws[S.utils.encode_cell({ r: i + 1, c: 12 })] = { t: "n", f: "K" + rn + "-L" + rn };
-            var cRef = S.utils.encode_cell({ r: i + 1, c: 2 });
+            ws[S.utils.encode_cell({ r: i + 1, c: 5 })] = { t: "s", f: 'IF(E' + rn + '<TODAY(),"hết hạn","còn hạn")' };
+            ws[S.utils.encode_cell({ r: i + 1, c: 13 })] = { t: "n", f: "L" + rn + "-M" + rn };
             var dRef = S.utils.encode_cell({ r: i + 1, c: 3 });
-            if (ws[cRef] && ws[cRef].t === "n") ws[cRef].z = "yyyy-mm-dd";
+            var eRef = S.utils.encode_cell({ r: i + 1, c: 4 });
             if (ws[dRef] && ws[dRef].t === "n") ws[dRef].z = "yyyy-mm-dd";
-            var iRef = S.utils.encode_cell({ r: i + 1, c: 8 });
-            if (ws[iRef]) ws[iRef].z = "#,##0";
+            if (ws[eRef] && ws[eRef].t === "n") ws[eRef].z = "yyyy-mm-dd";
+            var jRef = S.utils.encode_cell({ r: i + 1, c: 9 });
+            if (ws[jRef]) ws[jRef].z = "#,##0";
           }
 
           var wb = S.utils.book_new();

@@ -384,12 +384,30 @@ async function handleAction(
         return "";
       };
 
+      // Lookup loại BV (Công/Tư) from dm_khach_hang
+      const maKhList = [...new Set(contracts.map((c: any) => c.ma_kh).filter(Boolean))];
+      const loaiBvMap: Record<string, string> = {};
+      for (let i = 0; i < maKhList.length; i += 50) {
+        const { data } = await admin
+          .schema("shared").from("dm_khach_hang")
+          .select("customer_id, type_lvl1, type_lvl2")
+          .in("customer_id", maKhList.slice(i, i + 50));
+        if (data) for (const r of data as any[]) {
+          const t2 = (r.type_lvl2 || "").trim().toLowerCase();
+          if (t2 === "công" || t2 === "tư") { loaiBvMap[r.customer_id] = t2 === "công" ? "Công" : "Tư"; continue; }
+          const t1 = (r.type_lvl1 || "").toLowerCase();
+          if (t1.includes("công")) loaiBvMap[r.customer_id] = "Công";
+          else if (t1.includes("tư")) loaiBvMap[r.customer_id] = "Tư";
+        }
+      }
+
       const cMap: Record<string, any> = {};
       for (const c of contracts) cMap[c.ma_hd] = c;
 
       const rows = allItems.map((it: any) => {
         const c = cMap[it.ma_hd] || {};
         return {
+          loai_bv: loaiBvMap[c.ma_kh] || "",
           ten_kh: c.ten_kh,
           so_hd: c.so_hd,
           ngay_ky: c.ngay_ky,
