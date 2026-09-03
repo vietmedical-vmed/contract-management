@@ -297,6 +297,100 @@ async function handleAction(
       return { ok: true, contract, items };
     }
 
+    // ── export-contracts ─────────────────────────────────────────────────
+    case "export-contracts": {
+      const { mien, bu, nhom_sp, status } = payload || {};
+
+      const now = new Date();
+      const mon = now.getMonth() + 1;
+      const yr = now.getFullYear();
+      const fyStart = mon >= 4 ? `${yr}-04-01` : `${yr - 1}-04-01`;
+      const fyEnd = mon >= 4 ? `${yr + 1}-03-31` : `${yr}-03-31`;
+      const today = now.toISOString().slice(0, 10);
+
+      let filterMaHds: string[] | null = null;
+      if (bu) {
+        const buMaHds = await resolveBu(admin, bu);
+        if (buMaHds.length === 0) return { ok: true, rows: [] };
+        filterMaHds = buMaHds;
+      }
+      if (nhom_sp) {
+        const nhomMaHds = await resolveNhomSp(admin, nhom_sp);
+        if (nhomMaHds.length === 0) return { ok: true, rows: [] };
+        if (filterMaHds) {
+          const nhomSet = new Set(nhomMaHds);
+          filterMaHds = filterMaHds.filter(id => nhomSet.has(id));
+          if (filterMaHds.length === 0) return { ok: true, rows: [] };
+        } else {
+          filterMaHds = nhomMaHds;
+        }
+      }
+
+      let q = admin
+        .from("contract_expiry_view")
+        .select("*")
+        .eq("is_ngoai_khoa", true)
+        .limit(5000);
+
+      if (perm.filterMien) q = q.eq("mien", perm.filterMien);
+      if (mien) q = q.eq("mien", mien);
+      if (filterMaHds) q = q.in("ma_hd", filterMaHds);
+
+      if (status === "ky_moi") q = q.gte("ngay_ky", fyStart);
+      else if (status === "con_han") q = q.lt("ngay_ky", fyStart).gt("thoi_han", fyEnd);
+      else if (status === "sap_het") q = q.lt("ngay_ky", fyStart).gte("thoi_han", today).lte("thoi_han", fyEnd);
+      else if (status === "het_han") q = q.lt("ngay_ky", fyStart).gte("thoi_han", fyStart).lt("thoi_han", today);
+
+      q = q.order("ten_kh").order("ngay_ky");
+
+      const { data: contracts, error: cErr } = await q;
+      if (cErr) return { ok: false, error: cErr.message };
+      if (!contracts?.length) return { ok: true, rows: [] };
+
+      const maHdList = contracts.map((c: any) => c.ma_hd);
+      const allItems: any[] = [];
+      for (let i = 0; i < maHdList.length; i += 50) {
+        const { data } = await admin
+          .from("contract_items_remaining_view")
+          .select("*")
+          .in("ma_hd", maHdList.slice(i, i + 50));
+        if (data) allItems.push(...data);
+      }
+
+      const maNccList = [...new Set(allItems.map((it: any) => it.ma_ncc).filter(Boolean))];
+      const nhomMap: Record<string, string> = {};
+      for (let i = 0; i < maNccList.length; i += 50) {
+        const { data } = await admin
+          .schema("shared").from("dm_vat_tu")
+          .select("ma_ncc, nhom_san_pham")
+          .in("ma_ncc", maNccList.slice(i, i + 50));
+        if (data) for (const r of data as any[]) nhomMap[r.ma_ncc] = r.nhom_san_pham;
+      }
+
+      const cMap: Record<string, any> = {};
+      for (const c of contracts) cMap[c.ma_hd] = c;
+
+      const rows = allItems.map((it: any) => {
+        const c = cMap[it.ma_hd] || {};
+        return {
+          ten_kh: c.ten_kh,
+          so_hd: c.so_hd,
+          ngay_ky: c.ngay_ky,
+          thoi_han: c.thoi_han,
+          ten_ps: c.ten_ps,
+          ma_chung: it.ma_chung,
+          ten_hang_hoa: it.ten_hang_hoa,
+          don_gia: it.don_gia,
+          nhom_sp: nhomMap[it.ma_ncc] || "",
+          so_luong_hd: it.so_luong_hd,
+          so_luong_da_ban: it.so_luong_da_ban || 0,
+          so_luong_con_lai: it.so_luong_con_lai || 0,
+        };
+      });
+
+      return { ok: true, rows };
+    }
+
     // ── get-alerts ───────────────────────────────────────────────────────
     case "get-alerts": {
       const { data: cfgRows } = await admin.from("contract_alert_config").select("key, value");

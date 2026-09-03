@@ -123,6 +123,7 @@
     const [mienTab, setMienTab] = useState("Miền Bắc");
     const [kpiBac, setKpiBac] = useState(null);
     const [kpiNam, setKpiNam] = useState(null);
+    const [exporting, setExporting] = useState(false);
     const PAGE_SIZE = 30;
 
     useEffect(() => {
@@ -152,6 +153,68 @@
     useEffect(() => { load(); }, [load]);
 
     const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+
+    function parseLocalDate(s) {
+      if (!s) return null;
+      var p = s.slice(0, 10).split("-");
+      return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    }
+
+    function handleExport() {
+      if (exporting) return;
+      setExporting(true);
+      api("export-contracts", {
+        mien: mienTab, bu: filters.bu, nhom_sp: filters.nhom_sp, status: filterStatus
+      })
+        .then(function (res) {
+          if (!res.rows || res.rows.length === 0) { alert("Không có dữ liệu để xuất"); return; }
+          var S = window.XLSX;
+          if (!S) { alert("Thư viện XLSX chưa tải xong, vui lòng thử lại"); return; }
+
+          var headers = [
+            "Tên Bệnh viện", "Số hợp đồng", "Ngày ký hđ", "Ngày hết hạn",
+            "Thời hạn HĐ", "Sale phụ trách", "Mã chung", "Tên chung",
+            "Đơn giá", "Phân loại", "SL trúng thầu", "Sử dụng sd", "Quota Còn lại"
+          ];
+
+          var aoa = [headers];
+          res.rows.forEach(function (r) {
+            aoa.push([
+              r.ten_kh || "", r.so_hd || "",
+              parseLocalDate(r.ngay_ky) || "", parseLocalDate(r.thoi_han) || "",
+              "", r.ten_ps || "", r.ma_chung || "", r.ten_hang_hoa || "",
+              r.don_gia || 0, r.nhom_sp || "",
+              r.so_luong_hd || 0, r.so_luong_da_ban || 0, 0
+            ]);
+          });
+
+          var ws = S.utils.aoa_to_sheet(aoa);
+
+          ws["!cols"] = [
+            { wch: 35 }, { wch: 30 }, { wch: 12 }, { wch: 14 },
+            { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 42 },
+            { wch: 15 }, { wch: 15 }, { wch: 14 }, { wch: 12 }, { wch: 14 }
+          ];
+
+          for (var i = 0; i < res.rows.length; i++) {
+            var rn = i + 2;
+            ws[S.utils.encode_cell({ r: i + 1, c: 4 })] = { t: "s", f: 'IF(D' + rn + '<TODAY(),"hết hạn","còn hạn")' };
+            ws[S.utils.encode_cell({ r: i + 1, c: 12 })] = { t: "n", f: "K" + rn + "-L" + rn };
+            var cRef = S.utils.encode_cell({ r: i + 1, c: 2 });
+            var dRef = S.utils.encode_cell({ r: i + 1, c: 3 });
+            if (ws[cRef] && ws[cRef].t === "n") ws[cRef].z = "yyyy-mm-dd";
+            if (ws[dRef] && ws[dRef].t === "n") ws[dRef].z = "yyyy-mm-dd";
+            var iRef = S.utils.encode_cell({ r: i + 1, c: 8 });
+            if (ws[iRef]) ws[iRef].z = "#,##0";
+          }
+
+          var wb = S.utils.book_new();
+          S.utils.book_append_sheet(wb, ws, "Sheet1");
+          S.writeFile(wb, "Báo cáo theo dõi hợp đồng trúng thầu.xlsx");
+        })
+        .catch(function (err) { alert("Lỗi xuất Excel: " + err.message); })
+        .finally(function () { setExporting(false); });
+    }
 
     function toggleExpand(maHd) {
       setExpandedSet(prev => {
@@ -213,7 +276,19 @@
           type: "text", placeholder: "Tìm KH, sản phẩm, mã HĐ...",
           value: search, onChange: e => { setSearch(e.target.value); setPage(1); },
           className: "px-3 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1", width: "220px" }
-        })
+        }),
+        el("button", {
+          onClick: handleExport, disabled: exporting,
+          className: "px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5",
+          style: { background: exporting ? "#9ca3af" : "#22c55e", cursor: exporting ? "not-allowed" : "pointer", whiteSpace: "nowrap" }
+        },
+          el("svg", { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            el("path", { d: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" }),
+            el("polyline", { points: "7 10 12 15 17 10" }),
+            el("line", { x1: 12, y1: 15, x2: 12, y2: 3 })
+          ),
+          exporting ? "Đang xuất..." : "Xuất Excel"
+        )
       ),
 
       // Table
