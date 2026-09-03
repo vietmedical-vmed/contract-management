@@ -117,8 +117,6 @@
     const [filterStatus, setFilterStatus] = useState("all");
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
-    const [buOptions, setBuOptions] = useState([]);
-    const [nhomSpOptions, setNhomSpOptions] = useState([]);
     const [expandedSet, setExpandedSet] = useState({});
     const [mienTab, setMienTab] = useState("Miền Bắc");
     const [kpiBac, setKpiBac] = useState(null);
@@ -143,8 +141,6 @@
       })
         .then(res => {
           setContracts(res.data || []); setTotal(res.total || 0);
-          if (res.bu_list) setBuOptions(res.bu_list);
-          if (res.nhom_sp_list) setNhomSpOptions(res.nhom_sp_list);
         })
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
@@ -254,46 +250,10 @@
         })
       ),
 
-      // Compact filter bar
-      el("div", { className: "bg-white rounded-xl shadow-sm px-4 py-2.5 flex flex-wrap items-center gap-3" },
-        el("span", { className: "text-xs font-semibold uppercase", style: { color: "#9ca3af", letterSpacing: "0.05em" } }, "Lọc"),
-        el("select", {
-          value: filters.bu, onChange: e => { F.set({ bu: e.target.value }); setPage(1); },
-          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
-        },
-          el("option", { value: "" }, "BU: tất cả"),
-          buOptions.map(k => el("option", { key: k, value: k }, k))
-        ),
-        el("select", {
-          value: filters.nhom_sp, onChange: e => { F.set({ nhom_sp: e.target.value }); setPage(1); },
-          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
-        },
-          el("option", { value: "" }, "Nhóm SP: tất cả"),
-          nhomSpOptions.map(k => el("option", { key: k, value: k }, k))
-        ),
-        el("div", { style: { flex: 1 } }),
-        el("input", {
-          type: "text", placeholder: "Tìm KH, sản phẩm, mã HĐ...",
-          value: search, onChange: e => { setSearch(e.target.value); setPage(1); },
-          className: "px-3 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1", width: "220px" }
-        }),
-        el("button", {
-          onClick: handleExport, disabled: exporting,
-          className: "px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5",
-          style: { background: exporting ? "#9ca3af" : "#22c55e", cursor: exporting ? "not-allowed" : "pointer", whiteSpace: "nowrap" }
-        },
-          el("svg", { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
-            el("path", { d: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" }),
-            el("polyline", { points: "7 10 12 15 17 10" }),
-            el("line", { x1: 12, y1: 15, x2: 12, y2: 3 })
-          ),
-          exporting ? "Đang xuất..." : "Xuất Excel"
-        )
-      ),
-
       // Table
       el("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden" },
-        el("div", { className: "flex border-b", style: { borderColor: "#dadde1" } },
+        // Miền tabs + search + export
+        el("div", { className: "flex items-center border-b px-5", style: { borderColor: "#dadde1" } },
           [{ m: "Miền Bắc", kd: kpiBac }, { m: "Miền Nam", kd: kpiNam }].map(({ m, kd }) =>
             el("button", {
               key: m,
@@ -311,6 +271,24 @@
               className: "ml-1.5 text-xs font-normal",
               style: { color: mienTab === m ? "#1877f2" : "#9ca3af" }
             }, "(" + fmt(kd.total_contracts) + ")"))
+          ),
+          el("div", { style: { flex: 1 } }),
+          el("input", {
+            type: "text", placeholder: "Tìm KH, sản phẩm, mã HĐ...",
+            value: search, onChange: e => { setSearch(e.target.value); setPage(1); },
+            className: "px-3 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1", width: "200px" }
+          }),
+          el("button", {
+            onClick: handleExport, disabled: exporting,
+            className: "ml-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5",
+            style: { background: exporting ? "#9ca3af" : "#22c55e", cursor: exporting ? "not-allowed" : "pointer", whiteSpace: "nowrap" }
+          },
+            el("svg", { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+              el("path", { d: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" }),
+              el("polyline", { points: "7 10 12 15 17 10" }),
+              el("line", { x1: 12, y1: 15, x2: 12, y2: 3 })
+            ),
+            exporting ? "Đang xuất..." : "Xuất Excel"
           )
         ),
         el("div", { className: "overflow-x-auto" },

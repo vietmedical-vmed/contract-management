@@ -142,27 +142,6 @@
         })
       ),
 
-      // Compact filter bar
-      el("div", { className: "bg-white rounded-xl shadow-sm px-4 py-2.5 flex flex-wrap items-center gap-3" },
-        el("span", { className: "text-xs font-semibold uppercase", style: { color: "#9ca3af", letterSpacing: "0.05em" } }, "Lọc"),
-        el("select", {
-          value: filters.bu,
-          onChange: function (e) { F.set({ bu: e.target.value }); },
-          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
-        },
-          el("option", { value: "" }, "BU: tất cả"),
-          (data.bu_list || []).map(function (k) { return el("option", { key: k, value: k }, k); })
-        ),
-        el("select", {
-          value: filters.nhom_sp,
-          onChange: function (e) { F.set({ nhom_sp: e.target.value }); },
-          className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
-        },
-          el("option", { value: "" }, "Nhóm SP: tất cả"),
-          (data.nhom_sp_list || []).map(function (k) { return el("option", { key: k, value: k }, k); })
-        )
-      ),
-
       // Miền tabs + Alert rows
       el("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden" },
         el("div", { className: "flex border-b", style: { borderColor: "#dadde1" } },

@@ -4,6 +4,7 @@
   const { api, getToken, getUser, clearToken } = window.CONTRACT_API;
   const { LoginGate } = window.CONTRACT_AUTH;
   const R = window.CONTRACT_ROUTER;
+  const F = window.CONTRACT_FILTERS;
 
   const NAV = [
     { path: "/dashboard",  label: "Tổng quan" },
@@ -21,9 +22,19 @@
 
   function Shell({ user, onLogout }) {
     const path = R.useRoute();
+    const filters = F.useFilters();
+    const [buOptions, setBuOptions] = useState([]);
+    const [nhomSpOptions, setNhomSpOptions] = useState([]);
     const visibleNav = NAV.filter(n => !n.roles || n.roles.includes(user.role));
     const Screen = R.get(path);
     const subtitle = user.ho_ten || user.username || "—";
+
+    useEffect(() => {
+      api("list-contracts", { page_size: 1 }).then(res => {
+        if (res.bu_list) setBuOptions(res.bu_list);
+        if (res.nhom_sp_list) setNhomSpOptions(res.nhom_sp_list);
+      }).catch(() => {});
+    }, []);
     const ROLE_BADGE = {
       admin:   { label: "Admin",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
       manager: { label: "Manager", cls: "bg-blue-50 text-blue-700 border-blue-200" },
@@ -66,7 +77,26 @@
               ),
             ),
           ),
-          h("nav", { className: "flex items-center gap-5 md:gap-6 mt-3 overflow-x-auto overflow-y-hidden" },
+          h("div", { className: "flex flex-wrap items-center gap-3 py-2.5 border-t border-slate-200 mt-3" },
+            h("span", { className: "text-xs font-semibold uppercase", style: { color: "#9ca3af", letterSpacing: "0.05em" } }, "Lọc"),
+            h("select", {
+              value: filters.bu,
+              onChange: e => F.set({ bu: e.target.value }),
+              className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
+            },
+              h("option", { value: "" }, "BU: tất cả"),
+              buOptions.map(k => h("option", { key: k, value: k }, k))
+            ),
+            h("select", {
+              value: filters.nhom_sp,
+              onChange: e => F.set({ nhom_sp: e.target.value }),
+              className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
+            },
+              h("option", { value: "" }, "Nhóm SP: tất cả"),
+              nhomSpOptions.map(k => h("option", { key: k, value: k }, k))
+            ),
+          ),
+          h("nav", { className: "flex items-center gap-5 md:gap-6 pt-2.5 overflow-x-auto overflow-y-hidden border-t border-slate-200" },
             visibleNav.map((it) => h("button", {
               key: it.path,
               onClick: () => R.navigate(it.path),
@@ -78,10 +108,10 @@
           ),
         ),
       ),
-      h("main", { className: "w-full" },
+      h("main", { className: "w-full px-4 md:px-6 py-4" },
         Screen
           ? h(Screen, { user })
-          : h("div", { className: "p-6 text-slate-500 text-sm" }, "Trang chưa được xây dựng"),
+          : h("div", { className: "text-slate-500 text-sm" }, "Trang chưa được xây dựng"),
       ),
     );
   }
