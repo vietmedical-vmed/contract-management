@@ -357,26 +357,20 @@ async function handleAction(
         if (data) allItems.push(...data);
       }
 
-      const splitCodes = (raw: string) =>
-        raw.replace(/\s*\/\s*/g, "/").split("/").map((s: string) => s.trim()).filter(Boolean);
-      const atomicCodes = new Set<string>();
-      for (const it of allItems) {
-        if (!it.ma_ncc) continue;
-        for (const part of splitCodes(it.ma_ncc)) atomicCodes.add(part);
-      }
-      const maNccList = [...atomicCodes];
-      const nhomMap: Record<string, string> = {};
-      for (let i = 0; i < maNccList.length; i += 50) {
+      // Build nhom_san_pham lookup by ma_chung (reliable) + ma_ncc (fallback)
+      const maChungList = [...new Set(allItems.map((it: any) => it.ma_chung).filter(Boolean))];
+      const chungMap: Record<string, string> = {};
+      for (let i = 0; i < maChungList.length; i += 50) {
         const { data } = await admin
           .schema("shared").from("dm_vat_tu")
-          .select("ma_ncc, nhom_san_pham")
-          .in("ma_ncc", maNccList.slice(i, i + 50));
-        if (data) for (const r of data as any[]) nhomMap[r.ma_ncc] = r.nhom_san_pham;
+          .select("ma_chung, nhom_san_pham")
+          .in("ma_chung", maChungList.slice(i, i + 50));
+        if (data) for (const r of data as any[]) {
+          if (r.nhom_san_pham && !chungMap[r.ma_chung]) chungMap[r.ma_chung] = r.nhom_san_pham;
+        }
       }
-      const lookupNhom = (maNcc: string): string => {
-        if (!maNcc) return "";
-        if (nhomMap[maNcc]) return nhomMap[maNcc];
-        for (const p of splitCodes(maNcc)) { if (nhomMap[p]) return nhomMap[p]; }
+      const lookupNhom = (item: any): string => {
+        if (item.ma_chung && chungMap[item.ma_chung]) return chungMap[item.ma_chung];
         return "";
       };
 
@@ -394,7 +388,7 @@ async function handleAction(
           ma_chung: it.ma_chung,
           ten_hang_hoa: it.ten_hang_hoa,
           don_gia: it.don_gia,
-          nhom_sp: lookupNhom(it.ma_ncc),
+          nhom_sp: lookupNhom(it),
           so_luong_hd: it.so_luong_hd,
           so_luong_da_ban: it.so_luong_da_ban || 0,
           so_luong_con_lai: it.so_luong_con_lai || 0,
