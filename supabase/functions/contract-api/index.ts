@@ -357,15 +357,19 @@ async function handleAction(
         if (data) allItems.push(...data);
       }
 
-      // Build nhom_san_pham lookup by ma_chung (reliable) + ma_ncc (fallback)
+      // Build nhom_san_pham lookup by ma_chung from dm_vat_tu + dm_bo_vat_tu
       const maChungList = [...new Set(allItems.map((it: any) => it.ma_chung).filter(Boolean))];
       const chungMap: Record<string, string> = {};
       for (let i = 0; i < maChungList.length; i += 50) {
-        const { data } = await admin
-          .schema("shared").from("dm_vat_tu")
-          .select("ma_chung, nhom_san_pham")
-          .in("ma_chung", maChungList.slice(i, i + 50));
-        if (data) for (const r of data as any[]) {
+        const batch = maChungList.slice(i, i + 50);
+        const [vtRes, boRes] = await Promise.all([
+          admin.schema("shared").from("dm_vat_tu").select("ma_chung, nhom_san_pham").in("ma_chung", batch),
+          admin.schema("shared").from("dm_bo_vat_tu").select("ma_chung, nhom_san_pham").in("ma_chung", batch),
+        ]);
+        for (const r of (vtRes.data || []) as any[]) {
+          if (r.nhom_san_pham && !chungMap[r.ma_chung]) chungMap[r.ma_chung] = r.nhom_san_pham;
+        }
+        for (const r of (boRes.data || []) as any[]) {
           if (r.nhom_san_pham && !chungMap[r.ma_chung]) chungMap[r.ma_chung] = r.nhom_san_pham;
         }
       }
