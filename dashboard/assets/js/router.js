@@ -7,7 +7,7 @@
 
   function currentPath() {
     const h = window.location.hash.replace(/^#\/?/, "/");
-    return h === "/" ? "/dashboard" : h;
+    return (!h || h === "/") ? "/dashboard" : h;
   }
 
   function navigate(path) {
