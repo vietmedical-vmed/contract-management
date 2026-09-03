@@ -357,7 +357,14 @@ async function handleAction(
         if (data) allItems.push(...data);
       }
 
-      const maNccList = [...new Set(allItems.map((it: any) => it.ma_ncc).filter(Boolean))];
+      const splitCodes = (raw: string) =>
+        raw.replace(/\s*\/\s*/g, "/").split("/").map((s: string) => s.trim()).filter(Boolean);
+      const atomicCodes = new Set<string>();
+      for (const it of allItems) {
+        if (!it.ma_ncc) continue;
+        for (const part of splitCodes(it.ma_ncc)) atomicCodes.add(part);
+      }
+      const maNccList = [...atomicCodes];
       const nhomMap: Record<string, string> = {};
       for (let i = 0; i < maNccList.length; i += 50) {
         const { data } = await admin
@@ -366,6 +373,12 @@ async function handleAction(
           .in("ma_ncc", maNccList.slice(i, i + 50));
         if (data) for (const r of data as any[]) nhomMap[r.ma_ncc] = r.nhom_san_pham;
       }
+      const lookupNhom = (maNcc: string): string => {
+        if (!maNcc) return "";
+        if (nhomMap[maNcc]) return nhomMap[maNcc];
+        for (const p of splitCodes(maNcc)) { if (nhomMap[p]) return nhomMap[p]; }
+        return "";
+      };
 
       const cMap: Record<string, any> = {};
       for (const c of contracts) cMap[c.ma_hd] = c;
@@ -381,7 +394,7 @@ async function handleAction(
           ma_chung: it.ma_chung,
           ten_hang_hoa: it.ten_hang_hoa,
           don_gia: it.don_gia,
-          nhom_sp: nhomMap[it.ma_ncc] || "",
+          nhom_sp: lookupNhom(it.ma_ncc),
           so_luong_hd: it.so_luong_hd,
           so_luong_da_ban: it.so_luong_da_ban || 0,
           so_luong_con_lai: it.so_luong_con_lai || 0,
@@ -596,8 +609,8 @@ async function handleAction(
     }
 
     // ── sync-invoices ────────────────────────────────────────────────────
-    // Invoice table: app_sale.hoa_don_bovattu
-    // Join: so_hd + ma_san_pham (invoice) = so_hd + ma_ncc (contract)
+    // Uses Postgres RPC to join invoices directly in SQL (avoids PostgREST
+    // .in() encoding issues with special chars in so_hd like / and Đ)
     case "sync-invoices": {
       if (perm.role !== "admin") return { ok: false, error: "no permission" };
 
@@ -606,87 +619,9 @@ async function handleAction(
       for (const r of cfgRows || []) cfg[r.key] = r.value;
       const avgMonths = cfg.avg_period_months || 3;
 
-      const today = new Date();
-      const since = new Date(today);
-      since.setMonth(since.getMonth() - avgMonths);
-      const sinceStr = since.toISOString().slice(0, 10);
-
-      const { data: contracts } = await admin
-        .from("contract_contracts")
-        .select("ma_hd, so_hd");
-
-      const soHdList = [...new Set((contracts || []).map(c => c.so_hd).filter(Boolean))];
-      if (soHdList.length === 0) return { ok: true, updated: 0 };
-
-      // Batch .in() queries to avoid PostgREST URL length limit
-      const IN_BATCH = 50;
-      const allInvoiceTotal: any[] = [];
-      const allInvoiceRecent: any[] = [];
-
-      for (let i = 0; i < soHdList.length; i += IN_BATCH) {
-        const batch = soHdList.slice(i, i + IN_BATCH);
-
-        const { data: d1, error: e1 } = await admin
-          .schema("app_sale").from("hoa_don_bovattu")
-          .select("so_hd, ma_san_pham, so_luong")
-          .in("so_hd", batch);
-        if (e1) return { ok: false, error: "invoice query failed: " + e1.message };
-        if (d1) allInvoiceTotal.push(...d1);
-
-        const { data: d2, error: e2 } = await admin
-          .schema("app_sale").from("hoa_don_bovattu")
-          .select("so_hd, ma_san_pham, so_luong, ngay_tai_lieu")
-          .in("so_hd", batch)
-          .gte("ngay_tai_lieu", sinceStr);
-        if (e2) return { ok: false, error: "recent invoice query failed: " + e2.message };
-        if (d2) allInvoiceRecent.push(...d2);
-      }
-
-      // Aggregate totals by (so_hd, ma_san_pham)
-      const totals: Record<string, number> = {};
-      for (const inv of allInvoiceTotal) {
-        const key = `${inv.so_hd}|||${inv.ma_san_pham}`;
-        totals[key] = (totals[key] || 0) + (Number(inv.so_luong) || 0);
-      }
-
-      // Aggregate recent qty and distinct sales days
-      const recents: Record<string, number> = {};
-      const salesDays: Record<string, Set<string>> = {};
-      for (const inv of allInvoiceRecent) {
-        const key = `${inv.so_hd}|||${inv.ma_san_pham}`;
-        recents[key] = (recents[key] || 0) + (Number(inv.so_luong) || 0);
-        if (!salesDays[key]) salesDays[key] = new Set();
-        if (inv.ngay_tai_lieu) salesDays[key].add(String(inv.ngay_tai_lieu).slice(0, 10));
-      }
-
-      // Upsert snapshot (ma_ncc = ma_san_pham from invoice)
-      const rows = Object.keys(totals).map(key => {
-        const [so_hd, ma_ncc] = key.split("|||");
-        const sold = totals[key] || 0;
-        const recentSold = recents[key] || 0;
-        const daysWithSales = salesDays[key]?.size || 0;
-        const avgDaily = daysWithSales > 0 ? recentSold / daysWithSales : 0;
-        return {
-          so_hd,
-          ma_ncc,
-          so_luong_ban: sold,
-          avg_daily_3m: Math.round(avgDaily * 100) / 100,
-          synced_at: new Date().toISOString(),
-        };
-      });
-
-      let updated = 0;
-      const UPSERT_BATCH = 500;
-      for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
-        const batch = rows.slice(i, i + UPSERT_BATCH);
-        const { error } = await admin
-          .from("contract_sold_snapshot")
-          .upsert(batch, { onConflict: "so_hd,ma_ncc" });
-        if (error) return { ok: false, error: "upsert failed: " + error.message };
-        updated += batch.length;
-      }
-
-      return { ok: true, updated };
+      const { data, error } = await admin.rpc("fn_sync_sold_snapshot", { p_avg_months: avgMonths });
+      if (error) return { ok: false, error: "sync failed: " + error.message };
+      return { ok: true, updated: data };
     }
 
     default:
