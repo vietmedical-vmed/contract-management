@@ -98,36 +98,42 @@ function sanitizeSearch(s: string): string {
 const NGOAI_KHOA_BUS = ['CH&CS', 'CTTM & CTUT', 'THNS & CSVT'];
 
 async function resolveNhomSp(admin: SupabaseClient, nhomSp: string): Promise<string[]> {
-  const { data: nccData } = await admin
-    .schema("shared").from("dm_vat_tu")
-    .select("ma_ncc")
-    .eq("nhom_san_pham", nhomSp);
-  const nccList = (nccData || []).map((r: any) => r.ma_ncc).filter(Boolean);
-  if (nccList.length === 0) return [];
+  const [vtRes, boRes] = await Promise.all([
+    admin.schema("shared").from("dm_vat_tu").select("ma_chung").eq("nhom_san_pham", nhomSp),
+    admin.schema("shared").from("dm_bo_vat_tu").select("ma_chung").eq("nhom_san_pham", nhomSp),
+  ]);
+  const maChungSet = new Set<string>();
+  for (const r of (vtRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
+  for (const r of (boRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
+  const maChungList = [...maChungSet];
+  if (maChungList.length === 0) return [];
   const allMaHd: string[] = [];
-  for (let i = 0; i < nccList.length; i += 50) {
+  for (let i = 0; i < maChungList.length; i += 50) {
     const { data } = await admin
       .from("contract_items")
       .select("ma_hd")
-      .in("ma_ncc", nccList.slice(i, i + 50));
+      .in("ma_chung", maChungList.slice(i, i + 50));
     if (data) allMaHd.push(...data.map((r: any) => r.ma_hd));
   }
   return [...new Set(allMaHd)];
 }
 
 async function resolveBu(admin: SupabaseClient, bu: string): Promise<string[]> {
-  const { data: nccData } = await admin
-    .schema("shared").from("dm_vat_tu")
-    .select("ma_ncc")
-    .eq("bu", bu);
-  const nccList = (nccData || []).map((r: any) => r.ma_ncc).filter(Boolean);
-  if (nccList.length === 0) return [];
+  const [vtRes, boRes] = await Promise.all([
+    admin.schema("shared").from("dm_vat_tu").select("ma_chung").eq("bu", bu),
+    admin.schema("shared").from("dm_bo_vat_tu").select("ma_chung").eq("bu", bu),
+  ]);
+  const maChungSet = new Set<string>();
+  for (const r of (vtRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
+  for (const r of (boRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
+  const maChungList = [...maChungSet];
+  if (maChungList.length === 0) return [];
   const allMaHd: string[] = [];
-  for (let i = 0; i < nccList.length; i += 50) {
+  for (let i = 0; i < maChungList.length; i += 50) {
     const { data } = await admin
       .from("contract_items")
       .select("ma_hd")
-      .in("ma_ncc", nccList.slice(i, i + 50));
+      .in("ma_chung", maChungList.slice(i, i + 50));
     if (data) allMaHd.push(...data.map((r: any) => r.ma_hd));
   }
   return [...new Set(allMaHd)];
@@ -138,12 +144,12 @@ async function getBuList(): Promise<string[]> {
 }
 
 async function getNhomSpList(admin: SupabaseClient): Promise<string[]> {
-  const { data } = await admin
-    .schema("shared").from("dm_vat_tu")
-    .select("nhom_san_pham")
-    .not("nhom_san_pham", "is", null)
-    .in("bu", NGOAI_KHOA_BUS);
-  return [...new Set((data || []).map((r: any) => r.nhom_san_pham).filter(Boolean))].sort();
+  const [vtRes, boRes] = await Promise.all([
+    admin.schema("shared").from("dm_vat_tu").select("nhom_san_pham").not("nhom_san_pham", "is", null).in("bu", NGOAI_KHOA_BUS),
+    admin.schema("shared").from("dm_bo_vat_tu").select("nhom_san_pham").not("nhom_san_pham", "is", null).in("bu", NGOAI_KHOA_BUS),
+  ]);
+  const all = [...(vtRes.data || []), ...(boRes.data || [])].map((r: any) => r.nhom_san_pham).filter(Boolean);
+  return [...new Set(all)].sort();
 }
 
 // ─── Action dispatch ─────────────────────────────────────────────────────
