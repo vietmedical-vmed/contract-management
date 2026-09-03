@@ -117,34 +117,29 @@
   }
 
   function App() {
-    const [user, setUser] = useState(null);
-    const [checking, setChecking] = useState(true);
+    const token = getToken();
+    const cached = getUser();
+    const [user, setUser] = useState(token && cached ? cached : null);
 
     useEffect(() => {
       const boot = document.getElementById("boot");
       if (boot) boot.style.display = "none";
 
-      const token = getToken();
-      const cached = getUser();
       if (token && cached) {
         api("whoami").then(me => {
-          setUser({
-            ...cached,
-            role: me.role || cached.role,
-            mien: me.mien || cached.mien,
-          });
+          setUser(prev => ({
+            ...prev,
+            role: me.role || prev.role,
+            mien: me.mien || prev.mien,
+          }));
         }).catch(() => {
           clearToken();
-        }).finally(() => setChecking(false));
+          setUser(null);
+        });
       } else {
         clearToken();
-        setChecking(false);
       }
     }, []);
-
-    if (checking) return h("div", { className: "min-h-screen flex items-center justify-center", style: { background: "#f0f2f5" } },
-      h("div", { className: "text-gray-400" }, "Đang kiểm tra phiên...")
-    );
 
     if (!user) return h(LoginGate, { onAuth: setUser });
 
