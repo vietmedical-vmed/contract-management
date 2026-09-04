@@ -446,9 +446,11 @@ async function handleAction(
       if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
       const { data: itemsRaw } = await qq;
 
+      const todayStr = new Date().toISOString().slice(0, 10);
       const quantity: any[] = [];
       for (const it of itemsRaw || []) {
         if (it.loai_bv !== 'Công') continue;
+        if (it.thoi_han && it.thoi_han < todayStr) continue;
         const conLai = it.so_luong_con_lai ?? 0;
         const avgDaily = it.avg_daily_3m ?? 0;
         if (avgDaily <= 0) continue;
@@ -562,6 +564,7 @@ async function handleAction(
       const quantityAlerts: any[] = [];
       for (const it of itemsRaw || []) {
         if (it.loai_bv !== 'Công') continue;
+        if (it.thoi_han && it.thoi_han < today) continue;
         if (filterMaHdSet && !filterMaHdSet.has(it.ma_hd)) continue;
         const conLai = it.so_luong_con_lai ?? 0;
         const avgDaily = it.avg_daily_3m ?? 0;
