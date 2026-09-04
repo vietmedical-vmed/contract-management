@@ -59,25 +59,18 @@
               var conLai = a.so_luong_con_lai || 0;
               var daBan = slHd - conLai;
               var pct = Math.min(Math.round((daBan / slHd) * 100), 100);
-              var barColor = a.days_supply <= 5 ? "#dc2626" : a.days_supply <= 10 ? "#f59e0b" : "#3b82f6";
+              var badgeBg = pct >= 90 ? "#dc2626" : pct >= 70 ? "#f59e0b" : "#3b82f6";
               return el("div", { key: i, style: { padding: "8px 0", borderBottom: i < alerts.length - 1 ? "1px solid #f3f4f6" : "none" } },
-                el("div", { className: "flex items-start justify-between gap-2 mb-1" },
+                el("div", { className: "flex items-start justify-between gap-2" },
                   el("div", { style: { minWidth: 0, flex: 1 } },
                     el("div", { className: "font-medium text-xs", style: { color: "#1c1e21", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, a.ten_hang_hoa),
-                    el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, (a.so_hd || a.ma_hd))
+                    el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, (a.so_hd || a.ma_hd)),
+                    el("div", { className: "text-xs mt-0.5", style: { color: "#65676b" } }, "Còn lại " + fmt(conLai) + "/" + fmt(slHd))
                   ),
                   el("span", {
                     className: "shrink-0 px-2 py-0.5 rounded-full text-white font-medium",
-                    style: { background: barColor, fontSize: "11px", whiteSpace: "nowrap" }
-                  }, "~" + a.days_supply + " ngày")
-                ),
-                el("div", { className: "flex items-center gap-2" },
-                  el("div", { style: { flex: 1, height: "6px", background: "#f3f4f6", borderRadius: "3px", overflow: "hidden" } },
-                    el("div", { style: { width: pct + "%", height: "100%", background: barColor, borderRadius: "3px", transition: "width 0.3s" } })
-                  ),
-                  el("span", { className: "text-xs shrink-0", style: { color: "#9ca3af", minWidth: "70px", textAlign: "right" } },
-                    fmt(conLai) + " / " + fmt(slHd)
-                  )
+                    style: { background: badgeBg, fontSize: "11px", whiteSpace: "nowrap" }
+                  }, pct + "%")
                 )
               );
             })
