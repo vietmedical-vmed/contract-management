@@ -167,9 +167,9 @@
               emptyMsg: "Không có hợp đồng nào sắp hết hạn"
             }),
             el(QuantityTable, {
-              title: "SP sắp hết thầu (" + (data.max_qty_warn_days || 20) + " ngày)",
+              title: "SP đã sử dụng >80% thầu",
               alerts: quantityAlerts,
-              emptyMsg: "Không có sản phẩm nào sắp hết thầu"
+              emptyMsg: "Không có sản phẩm nào sử dụng >80%"
             })
           )
         )

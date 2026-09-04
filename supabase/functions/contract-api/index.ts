@@ -566,15 +566,14 @@ async function handleAction(
         if (it.loai_bv !== 'Công') continue;
         if (it.thoi_han && it.thoi_han < today) continue;
         if (filterMaHdSet && !filterMaHdSet.has(it.ma_hd)) continue;
+        const slHd = it.so_luong_hd ?? 1;
         const conLai = it.so_luong_con_lai ?? 0;
-        const avgDaily = it.avg_daily_3m ?? 0;
-        if (avgDaily <= 0) continue;
-        const daysSupply = avgDaily > 0 ? Math.floor(conLai / avgDaily) : 9999;
-        if (daysSupply <= maxQtyWarn) {
-          quantityAlerts.push({ ...it, days_supply: daysSupply });
-        }
+        const daBan = slHd - conLai;
+        const pct = slHd > 0 ? Math.round((daBan / slHd) * 100) : 0;
+        if (pct <= 80) continue;
+        quantityAlerts.push({ ...it, pct_used: pct });
       }
-      quantityAlerts.sort((a, b) => a.days_supply - b.days_supply);
+      quantityAlerts.sort((a: any, b: any) => b.pct_used - a.pct_used);
 
       return {
         ok: true,
@@ -589,7 +588,7 @@ async function handleAction(
         bu_list: buListRes,
         nhom_sp_list: nhomSpList,
         expiry_alerts: expiryAlerts,
-        quantity_alerts: quantityAlerts.slice(0, 10),
+        quantity_alerts: quantityAlerts,
       };
     }
 
