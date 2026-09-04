@@ -64,13 +64,15 @@
                 el("div", { className: "flex items-start justify-between gap-2" },
                   el("div", { style: { minWidth: 0, flex: 1 } },
                     el("div", { className: "font-medium text-xs", style: { color: "#1c1e21", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, a.ten_hang_hoa),
-                    el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, (a.so_hd || a.ma_hd)),
-                    el("div", { className: "text-xs mt-0.5", style: { color: "#65676b" } }, "Còn lại " + fmt(conLai) + "/" + fmt(slHd))
+                    el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, (a.so_hd || a.ma_hd))
                   ),
-                  el("span", {
-                    className: "shrink-0 px-2 py-0.5 rounded-full text-white font-medium",
-                    style: { background: badgeBg, fontSize: "11px", whiteSpace: "nowrap" }
-                  }, pct + "%")
+                  el("div", { className: "shrink-0 flex flex-col items-end gap-0.5" },
+                    el("span", {
+                      className: "px-2 py-0.5 rounded-full text-white font-medium",
+                      style: { background: badgeBg, fontSize: "11px", whiteSpace: "nowrap" }
+                    }, pct + "%"),
+                    el("span", { className: "text-xs", style: { color: "#9ca3af" } }, "còn " + fmt(conLai) + "/" + fmt(slHd))
+                  )
                 )
               );
             })
