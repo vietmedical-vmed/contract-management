@@ -164,49 +164,72 @@
       })
         .then(function (res) {
           if (!res.rows || res.rows.length === 0) { alert("Không có dữ liệu để xuất"); return; }
-          var S = window.XLSX;
-          if (!S) { alert("Thư viện XLSX chưa tải xong, vui lòng thử lại"); return; }
+          if (!window.ExcelJS) { alert("Thư viện ExcelJS chưa tải xong, vui lòng thử lại"); return; }
+
+          var wb = new ExcelJS.Workbook();
+          var ws = wb.addWorksheet("Sheet1");
 
           var headers = [
             "Loại BV", "Tên Bệnh viện", "Số hợp đồng", "Ngày ký hđ", "Ngày hết hạn",
             "Thời hạn HĐ", "Sale phụ trách", "Mã chung", "Tên chung",
             "Đơn giá", "Phân loại", "SL trúng thầu", "Sử dụng sd", "Quota Còn lại"
           ];
+          var colWidths = [8, 36, 31, 13, 15, 13, 19, 13, 43, 16, 16, 15, 13, 15];
+          var font12 = { name: "Calibri", size: 12 };
+          var headerFont = { name: "Calibri", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
+          var headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4472C4" } };
+          var thinBorder = { style: "thin", color: { argb: "FFD9D9D9" } };
+          var border4 = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
 
-          var aoa = [headers];
-          res.rows.forEach(function (r) {
-            aoa.push([
+          ws.columns = colWidths.map(function (w, idx) { return { width: w, key: "c" + idx }; });
+
+          var headerRow = ws.addRow(headers);
+          headerRow.eachCell(function (cell) {
+            cell.font = headerFont;
+            cell.fill = headerFill;
+            cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+            cell.border = border4;
+          });
+          headerRow.height = 28;
+
+          res.rows.forEach(function (r, idx) {
+            var rn = idx + 2;
+            var row = ws.addRow([
               r.loai_bv || "", r.ten_kh || "", r.so_hd || "",
-              parseLocalDate(r.ngay_ky) || "", parseLocalDate(r.thoi_han) || "",
-              "", r.ten_ps || "", r.ma_chung || "", r.ten_hang_hoa || "",
+              parseLocalDate(r.ngay_ky), parseLocalDate(r.thoi_han),
+              { formula: 'IF(E' + rn + '<TODAY(),"hết hạn","còn hạn")' },
+              r.ten_ps || "", r.ma_chung || "", r.ten_hang_hoa || "",
               r.don_gia || 0, r.nhom_sp || "",
-              r.so_luong_hd || 0, r.so_luong_da_ban || 0, 0
+              r.so_luong_hd || 0, r.so_luong_da_ban || 0,
+              { formula: "L" + rn + "-M" + rn }
             ]);
+            row.eachCell({ includeEmpty: true }, function (cell, colNum) {
+              cell.font = font12;
+              cell.border = border4;
+              if (colNum === 4 || colNum === 5) {
+                cell.numFmt = "yyyy-mm-dd";
+                cell.alignment = { horizontal: "center" };
+              } else if (colNum === 6) {
+                cell.alignment = { horizontal: "center" };
+              } else if (colNum === 10) {
+                cell.numFmt = "#,##0";
+                cell.alignment = { horizontal: "right" };
+              } else if (colNum >= 12 && colNum <= 14) {
+                cell.numFmt = "#,##0";
+                cell.alignment = { horizontal: "right" };
+              }
+            });
           });
 
-          var ws = S.utils.aoa_to_sheet(aoa);
-
-          ws["!cols"] = [
-            { wch: 8 }, { wch: 35 }, { wch: 30 }, { wch: 12 }, { wch: 14 },
-            { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 42 },
-            { wch: 15 }, { wch: 15 }, { wch: 14 }, { wch: 12 }, { wch: 14 }
-          ];
-
-          for (var i = 0; i < res.rows.length; i++) {
-            var rn = i + 2;
-            ws[S.utils.encode_cell({ r: i + 1, c: 5 })] = { t: "s", f: 'IF(E' + rn + '<TODAY(),"hết hạn","còn hạn")' };
-            ws[S.utils.encode_cell({ r: i + 1, c: 13 })] = { t: "n", f: "L" + rn + "-M" + rn };
-            var dRef = S.utils.encode_cell({ r: i + 1, c: 3 });
-            var eRef = S.utils.encode_cell({ r: i + 1, c: 4 });
-            if (ws[dRef] && ws[dRef].t === "n") ws[dRef].z = "yyyy-mm-dd";
-            if (ws[eRef] && ws[eRef].t === "n") ws[eRef].z = "yyyy-mm-dd";
-            var jRef = S.utils.encode_cell({ r: i + 1, c: 9 });
-            if (ws[jRef]) ws[jRef].z = "#,##0";
-          }
-
-          var wb = S.utils.book_new();
-          S.utils.book_append_sheet(wb, ws, "Sheet1");
-          S.writeFile(wb, "Báo cáo theo dõi hợp đồng trúng thầu.xlsx");
+          wb.xlsx.writeBuffer().then(function (buf) {
+            var blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "Báo cáo theo dõi hợp đồng trúng thầu.xlsx";
+            a.click();
+            URL.revokeObjectURL(url);
+          });
         })
         .catch(function (err) { alert("Lỗi xuất Excel: " + err.message); })
         .finally(function () { setExporting(false); });
