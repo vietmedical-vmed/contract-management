@@ -1,6 +1,7 @@
--- Migration 012: Fix is_ngoai_khoa — check cả dm_vat_tu và dm_bo_vat_tu
--- Bug: HĐ có bộ vật tư (VD: 83-25/HĐ/VIETCUONG-BVĐKTH) bị is_ngoai_khoa=false
--- vì view chỉ join dm_vat_tu (vật tư riêng lẻ), bỏ sót dm_bo_vat_tu (bộ vật tư).
+-- Migration 012: Fix is_ngoai_khoa — check đầy đủ dm_vat_tu (by ma_ncc + ma_chung) và dm_bo_vat_tu
+-- Bug 1: HĐ có bộ vật tư bị miss vì chỉ join dm_vat_tu, thiếu dm_bo_vat_tu
+-- Bug 2: HĐ có ma_ncc dạng ngắn (VD: 1306) khác ma_ncc chi tiết trong dm_vat_tu (VD: 2103-1310)
+--         nhưng cùng ma_chung → cần fallback join dm_vat_tu bằng ma_chung
 
 -- 1. Expiry view
 DROP VIEW IF EXISTS contract_expiry_view;
@@ -30,6 +31,11 @@ SELECT
                 SELECT 1 FROM shared.dm_vat_tu dmv
                 WHERE dmv.ma_ncc = ci.ma_ncc
                 AND dmv.bu IN ('CH&CS', 'CTTM & CTUT', 'THNS &CSVT', 'THNS & CSVT')
+            )
+            OR EXISTS (
+                SELECT 1 FROM shared.dm_vat_tu dmv2
+                WHERE dmv2.ma_chung = ci.ma_chung
+                AND dmv2.bu IN ('CH&CS', 'CTTM & CTUT', 'THNS &CSVT', 'THNS & CSVT')
             )
             OR EXISTS (
                 SELECT 1 FROM shared.dm_bo_vat_tu dbv
@@ -89,6 +95,10 @@ SELECT
         SELECT 1 FROM shared.dm_vat_tu dmv
         WHERE dmv.ma_ncc = ig.ma_ncc
         AND dmv.bu IN ('CH&CS', 'CTTM & CTUT', 'THNS &CSVT', 'THNS & CSVT')
+    ) OR EXISTS (
+        SELECT 1 FROM shared.dm_vat_tu dmv2
+        WHERE dmv2.ma_chung = ig.ma_chung
+        AND dmv2.bu IN ('CH&CS', 'CTTM & CTUT', 'THNS &CSVT', 'THNS & CSVT')
     ) OR EXISTS (
         SELECT 1 FROM shared.dm_bo_vat_tu dbv
         WHERE dbv.ma_chung = ig.ma_chung
