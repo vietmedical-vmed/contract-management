@@ -49,11 +49,73 @@
     );
   }
 
+  function ConfigPopup({ onClose }) {
+    const [config, setConfig] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    useEffect(() => {
+      api("get-config", {})
+        .then(res => setConfig(res.config || {}))
+        .catch(err => setError(err.message))
+        .finally(() => setLoading(false));
+    }, []);
+
+    async function handleSave() {
+      setSaving(true); setError(""); setSuccess("");
+      try {
+        await api("update-config", { config });
+        setSuccess("Đã lưu!");
+      } catch (err) { setError(err.message); }
+      finally { setSaving(false); }
+    }
+
+    return h("div", {
+      className: "fixed inset-0 z-50 flex items-start justify-center pt-24",
+      onClick: e => { if (e.target === e.currentTarget) onClose(); },
+    },
+      h("div", { className: "absolute inset-0 bg-black/30" }),
+      h("div", { className: "relative bg-white rounded-xl shadow-xl w-full max-w-md p-5" },
+        h("div", { className: "flex items-center justify-between mb-4" },
+          h("h3", { className: "text-base font-bold", style: { color: "#1c1e21" } }, "Cấu hình cảnh báo"),
+          h("button", { onClick: onClose, className: "text-slate-400 hover:text-slate-600 text-lg leading-none" }, "✕"),
+        ),
+        loading
+          ? h("div", { className: "text-center py-8 text-slate-400 text-sm" }, "Đang tải...")
+          : h("div", null,
+              error && h("div", { className: "rounded-lg px-3 py-2 mb-3 text-sm", style: { background: "#fee2e2", color: "#dc2626" } }, error),
+              success && h("div", { className: "rounded-lg px-3 py-2 mb-3 text-sm", style: { background: "#dcfce7", color: "#16a34a" } }, success),
+              h("label", { className: "block text-sm font-medium mb-1", style: { color: "#1c1e21" } }, "Cảnh báo hết hạn HĐ (ngày)"),
+              h("p", { className: "text-xs mb-2", style: { color: "#65676b" } }, "Mốc cảnh báo trước ngày hết hạn. VD: 30, 15"),
+              h("input", {
+                type: "text",
+                value: (config.contract_warn_days || []).join(", "),
+                onChange: e => {
+                  const v = e.target.value.split(",").map(s => Number(s.trim())).filter(n => !isNaN(n));
+                  setConfig(prev => ({ ...prev, contract_warn_days: v }));
+                  setSuccess("");
+                },
+                className: "w-full px-3 py-2 rounded-lg border text-sm mb-4", style: { borderColor: "#dadde1" },
+                placeholder: "VD: 30, 15",
+              }),
+              h("button", {
+                onClick: handleSave, disabled: saving,
+                className: "px-5 py-2 rounded-lg text-white font-semibold text-sm transition",
+                style: { background: saving ? "#93c5fd" : "#1877f2" },
+              }, saving ? "Đang lưu..." : "Lưu"),
+            ),
+      ),
+    );
+  }
+
   function Shell({ user, onLogout }) {
     const path = R.useRoute();
     const filters = F.useFilters();
     const [buOptions, setBuOptions] = useState([]);
     const [nhomSpOptions, setNhomSpOptions] = useState([]);
+    const [showConfig, setShowConfig] = useState(false);
     const visibleNav = NAV.filter(n => !n.roles || n.roles.includes(user.role));
     const Screen = R.get(path);
     const subtitle = user.ho_ten || user.username || "—";
@@ -127,9 +189,8 @@
             user.role === "admin" && h("div", { className: "flex items-center gap-2 ml-auto" },
               h(SyncBtn),
               h("button", {
-                onClick: () => R.navigate("/config"),
-                className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition " +
-                  (path === "/config" ? "text-blue-600 border-blue-300 bg-blue-50" : "text-slate-700 border-slate-300 hover:bg-slate-50"),
+                onClick: () => setShowConfig(true),
+                className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition text-slate-700 border-slate-300 hover:bg-slate-50",
               }, h("span", null, "⚙"), "Cấu hình"),
             ),
           ),
@@ -150,6 +211,7 @@
           ? h(Screen, { user })
           : h("div", { className: "text-slate-500 text-sm" }, "Trang chưa được xây dựng"),
       ),
+      showConfig && h(ConfigPopup, { onClose: () => setShowConfig(false) }),
     );
   }
 
