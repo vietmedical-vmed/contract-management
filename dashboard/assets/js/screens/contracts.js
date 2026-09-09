@@ -113,7 +113,7 @@
     const [kpiBac, setKpiBac] = useState(null);
     const [kpiNam, setKpiNam] = useState(null);
     const [exporting, setExporting] = useState(false);
-    const PAGE_SIZE = 30;
+    const PAGE_SIZE = 15;
 
     useEffect(() => {
       Promise.all([
