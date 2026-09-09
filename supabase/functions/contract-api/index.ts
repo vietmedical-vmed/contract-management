@@ -114,15 +114,16 @@ async function getBuList(): Promise<string[]> {
 let _nhomSpCache: { data: string[]; ts: number } | null = null;
 const NHOM_SP_CACHE_TTL = 300000;
 
-async function getNhomSpList(admin: SupabaseClient): Promise<string[]> {
-  if (_nhomSpCache && Date.now() - _nhomSpCache.ts < NHOM_SP_CACHE_TTL) return _nhomSpCache.data;
+async function getNhomSpList(admin: SupabaseClient, bu?: string): Promise<string[]> {
+  if (!bu && _nhomSpCache && Date.now() - _nhomSpCache.ts < NHOM_SP_CACHE_TTL) return _nhomSpCache.data;
+  const buFilter = bu ? [bu] : NGOAI_KHOA_BUS;
   const [vtRes, boRes] = await Promise.all([
-    admin.schema("shared").from("dm_vat_tu").select("nhom_san_pham").not("nhom_san_pham", "is", null).in("bu", NGOAI_KHOA_BUS).limit(5000),
-    admin.schema("shared").from("dm_bo_vat_tu").select("nhom_san_pham").not("nhom_san_pham", "is", null).in("bu", NGOAI_KHOA_BUS).limit(5000),
+    admin.schema("shared").from("dm_vat_tu").select("nhom_san_pham").not("nhom_san_pham", "is", null).in("bu", buFilter).limit(5000),
+    admin.schema("shared").from("dm_bo_vat_tu").select("nhom_san_pham").not("nhom_san_pham", "is", null).in("bu", buFilter).limit(5000),
   ]);
   const all = [...(vtRes.data || []), ...(boRes.data || [])].map((r: any) => r.nhom_san_pham).filter(Boolean);
   const result = [...new Set(all)].sort();
-  _nhomSpCache = { data: result, ts: Date.now() };
+  if (!bu) _nhomSpCache = { data: result, ts: Date.now() };
   return result;
 }
 
@@ -192,7 +193,7 @@ async function handleAction(
       // Run dropdown + resolve queries in parallel
       const [buList, nhomSpList, buMaHds, nhomMaHds] = await Promise.all([
         getBuList(),
-        getNhomSpList(admin),
+        getNhomSpList(admin, bu),
         bu ? resolveBu(admin, bu) : Promise.resolve(null),
         nhom_sp ? resolveNhomSp(admin, nhom_sp) : Promise.resolve(null),
       ]);
@@ -455,7 +456,7 @@ async function handleAction(
         bu ? resolveBu(admin, bu) : Promise.resolve(null),
         nhom_sp ? resolveNhomSp(admin, nhom_sp) : Promise.resolve(null),
         getBuList(),
-        getNhomSpList(admin),
+        getNhomSpList(admin, bu),
       ]);
 
       const cfg: Record<string, any> = {};

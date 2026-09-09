@@ -186,7 +186,7 @@
             h("span", { className: "text-xs font-semibold uppercase", style: { color: "#9ca3af", letterSpacing: "0.05em" } }, "Lọc"),
             h("select", {
               value: filters.bu,
-              onChange: e => F.set({ bu: e.target.value }),
+              onChange: e => F.set({ bu: e.target.value, nhom_sp: "" }),
               className: "px-2.5 py-1.5 rounded-lg border text-xs", style: { borderColor: "#dadde1" }
             },
               h("option", { value: "" }, "BU: tất cả"),
