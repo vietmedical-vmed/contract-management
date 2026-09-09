@@ -49,30 +49,54 @@
   }
 
   function QuantityTable({ alerts, title, emptyMsg }) {
+    // Group by ma_hd
+    var groups = [];
+    var groupMap = {};
+    alerts.forEach(function (a) {
+      var key = a.ma_hd;
+      if (!groupMap[key]) {
+        groupMap[key] = { ma_hd: key, so_hd: a.so_hd, ten_kh: a.ten_kh, items: [] };
+        groups.push(groupMap[key]);
+      }
+      groupMap[key].items.push(a);
+    });
+
     return el("div", null,
       el(SectionHeader, { title: title, color: "#dc2626" }),
       alerts.length === 0
         ? el("p", { className: "text-sm", style: { color: "#65676b" } }, emptyMsg)
-        : el("div", { className: "space-y-3" },
-            alerts.map(function (a, i) {
-              var slHd = a.so_luong_hd || 1;
-              var conLai = a.so_luong_con_lai || 0;
-              var daBan = slHd - conLai;
-              var pct = Math.min(Math.round((daBan / slHd) * 100), 100);
-              var badgeBg = pct >= 90 ? "#dc2626" : pct >= 70 ? "#f59e0b" : "#3b82f6";
-              return el("div", { key: i, style: { padding: "8px 0", borderBottom: i < alerts.length - 1 ? "1px solid #f3f4f6" : "none" } },
-                el("div", { className: "flex items-start justify-between gap-2" },
-                  el("div", { style: { minWidth: 0, flex: 1 } },
-                    el("div", { className: "font-medium text-xs", style: { color: "#1c1e21", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, a.ten_hang_hoa),
-                    el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, (a.so_hd || a.ma_hd))
-                  ),
-                  el("div", { className: "shrink-0 flex flex-col items-end gap-0.5" },
-                    el("span", {
-                      className: "px-2 py-0.5 rounded-full text-white font-medium",
-                      style: { background: badgeBg, fontSize: "11px", whiteSpace: "nowrap" }
-                    }, pct + "%"),
-                    el("span", { className: "text-xs", style: { color: "#9ca3af" } }, "còn " + fmt(conLai) + "/" + fmt(slHd))
-                  )
+        : el("div", { className: "space-y-4" },
+            groups.map(function (g, gi) {
+              return el("div", { key: g.ma_hd, style: { borderBottom: gi < groups.length - 1 ? "1px solid #e5e7eb" : "none", paddingBottom: gi < groups.length - 1 ? "12px" : 0 } },
+                el("div", { className: "flex items-center gap-2 mb-2" },
+                  el("span", { className: "font-medium text-xs", style: { color: "#1877f2" } }, g.so_hd || g.ma_hd),
+                  g.ten_kh && el("span", { className: "text-xs", style: { color: "#9ca3af" } }, "· " + g.ten_kh)
+                ),
+                el("div", { className: "space-y-2 pl-3", style: { borderLeft: "2px solid #e5e7eb" } },
+                  g.items.map(function (a, i) {
+                    var slHd = a.so_luong_hd || 1;
+                    var conLai = a.so_luong_con_lai || 0;
+                    var daBan = slHd - conLai;
+                    var pct = Math.min(Math.round((daBan / slHd) * 100), 100);
+                    var badgeBg = pct >= 90 ? "#dc2626" : "#f59e0b";
+                    return el("div", { key: i, style: { padding: "4px 0" } },
+                      el("div", { className: "flex items-center justify-between gap-2" },
+                        el("span", { className: "text-xs", style: { color: "#1c1e21", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, flex: 1 } }, a.ten_hang_hoa),
+                        el("span", {
+                          className: "shrink-0 px-2 py-0.5 rounded-full text-white font-medium",
+                          style: { background: badgeBg, fontSize: "11px" }
+                        }, pct + "%")
+                      ),
+                      el("div", { className: "flex items-center gap-2 mt-1" },
+                        el("div", { style: { flex: 1, height: "4px", background: "#f3f4f6", borderRadius: "2px", overflow: "hidden" } },
+                          el("div", { style: { width: pct + "%", height: "100%", background: badgeBg, borderRadius: "2px" } })
+                        ),
+                        el("span", { className: "shrink-0 text-xs", style: { color: "#9ca3af", minWidth: "60px", textAlign: "right" } },
+                          fmt(conLai) + "/" + fmt(slHd)
+                        )
+                      )
+                    );
+                  })
                 )
               );
             })
