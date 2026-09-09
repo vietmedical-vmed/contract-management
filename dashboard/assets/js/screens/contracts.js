@@ -17,14 +17,6 @@
     return el("span", { className: "text-xs font-medium", style: { color: "#22c55e" } }, daysRemaining + " ngày");
   }
 
-  function daysSupplyBadge(conLai, avgDaily) {
-    if (!avgDaily || avgDaily <= 0) return el("span", { className: "text-xs text-gray-400" }, "—");
-    const days = Math.floor(conLai / avgDaily);
-    if (days <= 10) return el("span", { className: "px-2 py-0.5 rounded-full text-xs font-medium text-white", style: { background: "#dc2626" } }, days + " ngày");
-    if (days <= 20) return el("span", { className: "px-2 py-0.5 rounded-full text-xs font-medium text-white", style: { background: "#f59e0b" } }, days + " ngày");
-    return el("span", { className: "text-xs font-medium", style: { color: "#22c55e" } }, days + " ngày");
-  }
-
   function progressBar(conLai, total) {
     if (!total || total <= 0) return el("span", { className: "text-xs text-gray-400" }, "—");
     var pct = Math.min(100, Math.max(0, ((total - conLai) / total) * 100));
@@ -69,7 +61,7 @@
                 : el("table", { className: "w-full text-xs" },
                     el("thead", null,
                       el("tr", { style: { borderBottom: "1px solid #e5e7eb" } },
-                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "Còn lại", "Tiến độ", "Cảnh báo"].map(h =>
+                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "Còn lại", "Tiến độ"].map(h =>
                           el("th", {
                             key: h,
                             className: "px-2 py-1.5 font-medium whitespace-nowrap " +
@@ -94,14 +86,13 @@
                           el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_hd)),
                           el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_da_ban || 0)),
                           el("td", { className: "px-2 py-1.5 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
-                          el("td", { className: "px-2 py-1.5" }, it.is_bv_tu ? el("span", { className: "text-gray-400" }, "—") : progressBar(conLai, it.so_luong_hd)),
-                          el("td", { className: "px-2 py-1.5 whitespace-nowrap" }, it.is_bv_tu ? "—" : daysSupplyBadge(conLai, it.avg_daily_3m))
+                          el("td", { className: "px-2 py-1.5" }, it.is_bv_tu ? el("span", { className: "text-gray-400" }, "—") : progressBar(conLai, it.so_luong_hd))
                         );
                       })
                     )
                   ),
           items.length > 0 && !loading && el("div", { className: "text-xs mt-1", style: { color: "#9ca3af" } },
-            items.length + " sản phẩm · Cảnh báo = SL còn lại ÷ TB bán/ngày (3 tháng)"
+            items.length + " sản phẩm"
           )
         )
       )
@@ -125,10 +116,10 @@
     const PAGE_SIZE = 30;
 
     useEffect(() => {
-      api("dashboard-summary", { bu: filters.bu, mien: "Miền Bắc", nhom_sp: filters.nhom_sp })
-        .then(res => setKpiBac(res)).catch(() => {});
-      api("dashboard-summary", { bu: filters.bu, mien: "Miền Nam", nhom_sp: filters.nhom_sp })
-        .then(res => setKpiNam(res)).catch(() => {});
+      Promise.all([
+        api("dashboard-summary", { bu: filters.bu, mien: "Miền Bắc", nhom_sp: filters.nhom_sp }),
+        api("dashboard-summary", { bu: filters.bu, mien: "Miền Nam", nhom_sp: filters.nhom_sp })
+      ]).then(([bac, nam]) => { setKpiBac(bac); setKpiNam(nam); }).catch(() => {});
     }, [filters.bu, filters.nhom_sp]);
 
     const kpi = mienTab === "Miền Bắc" ? kpiBac : kpiNam;
@@ -156,15 +147,29 @@
       return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
     }
 
+    function loadExcelJS() {
+      if (window.ExcelJS) return Promise.resolve();
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+        s.onload = resolve;
+        s.onerror = function () { reject(new Error("Không tải được ExcelJS")); };
+        document.head.appendChild(s);
+      });
+    }
+
     function handleExport() {
       if (exporting) return;
       setExporting(true);
-      api("export-contracts", {
-        mien: mienTab, bu: filters.bu, nhom_sp: filters.nhom_sp, status: filterStatus
-      })
-        .then(function (res) {
+      Promise.all([
+        api("export-contracts", {
+          mien: mienTab, bu: filters.bu, nhom_sp: filters.nhom_sp, status: filterStatus
+        }),
+        loadExcelJS()
+      ])
+        .then(function (results) {
+          var res = results[0];
           if (!res.rows || res.rows.length === 0) { alert("Không có dữ liệu để xuất"); return; }
-          if (!window.ExcelJS) { alert("Thư viện ExcelJS chưa tải xong, vui lòng thử lại"); return; }
 
           var wb = new ExcelJS.Workbook();
           var ws = wb.addWorksheet("Sheet1");

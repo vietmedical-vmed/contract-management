@@ -82,18 +82,6 @@
           onChange: v => updateKey("contract_warn_days", v)
         }),
         el(ConfigField, {
-          label: "Cảnh báo hết thầu (ngày)",
-          desc: "Danh sách mốc cảnh báo khi số lượng còn lại không đủ cho N ngày bán. VD: 20, 10.",
-          value: config.quantity_warn_days, type: "array",
-          onChange: v => updateKey("quantity_warn_days", v)
-        }),
-        el(ConfigField, {
-          label: "Hệ số nhân cảnh báo thầu",
-          desc: "Hệ số nhân với trung bình bán ngày tương ứng với các mốc ngày. VD: 20, 10.",
-          value: config.quantity_multiplier, type: "array",
-          onChange: v => updateKey("quantity_multiplier", v)
-        }),
-        el(ConfigField, {
           label: "Khoảng thời gian tính trung bình (tháng)",
           desc: "Số tháng gần nhất dùng để tính trung bình bán hàng ngày.",
           value: config.avg_period_months, type: "number",

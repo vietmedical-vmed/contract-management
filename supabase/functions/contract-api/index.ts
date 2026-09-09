@@ -97,42 +97,14 @@ function sanitizeSearch(s: string): string {
 
 const NGOAI_KHOA_BUS = ['CH&CS', 'CTTM & CTUT', 'THNS & CSVT'];
 
-async function resolveMaChungToMaHd(admin: SupabaseClient, maChungList: string[]): Promise<string[]> {
-  if (maChungList.length === 0) return [];
-  const batches = [];
-  for (let i = 0; i < maChungList.length; i += 200) {
-    batches.push(
-      admin.from("contract_items").select("ma_hd").in("ma_chung", maChungList.slice(i, i + 200)).limit(5000)
-    );
-  }
-  const results = await Promise.all(batches);
-  const maHdSet = new Set<string>();
-  for (const r of results) {
-    for (const row of (r.data || []) as any[]) { if (row.ma_hd) maHdSet.add(row.ma_hd); }
-  }
-  return [...maHdSet];
-}
-
 async function resolveNhomSp(admin: SupabaseClient, nhomSp: string): Promise<string[]> {
-  const [vtRes, boRes] = await Promise.all([
-    admin.schema("shared").from("dm_vat_tu").select("ma_chung").eq("nhom_san_pham", nhomSp).limit(5000),
-    admin.schema("shared").from("dm_bo_vat_tu").select("ma_chung").eq("nhom_san_pham", nhomSp).limit(5000),
-  ]);
-  const maChungSet = new Set<string>();
-  for (const r of (vtRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
-  for (const r of (boRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
-  return resolveMaChungToMaHd(admin, [...maChungSet]);
+  const { data } = await admin.rpc("fn_resolve_nhom_sp", { p_nhom_sp: nhomSp });
+  return (data as string[]) || [];
 }
 
 async function resolveBu(admin: SupabaseClient, bu: string): Promise<string[]> {
-  const [vtRes, boRes] = await Promise.all([
-    admin.schema("shared").from("dm_vat_tu").select("ma_chung").eq("bu", bu).limit(5000),
-    admin.schema("shared").from("dm_bo_vat_tu").select("ma_chung").eq("bu", bu).limit(5000),
-  ]);
-  const maChungSet = new Set<string>();
-  for (const r of (vtRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
-  for (const r of (boRes.data || []) as any[]) { if (r.ma_chung) maChungSet.add(r.ma_chung); }
-  return resolveMaChungToMaHd(admin, [...maChungSet]);
+  const { data } = await admin.rpc("fn_resolve_bu", { p_bu: bu });
+  return (data as string[]) || [];
 }
 
 async function getBuList(): Promise<string[]> {
@@ -420,9 +392,7 @@ async function handleAction(
       for (const r of cfgRows || []) cfg[r.key] = r.value;
 
       const warnDays = cfg.contract_warn_days || [30, 15];
-      const qtyMult = cfg.quantity_multiplier || [20, 10];
       const maxWarn = Math.max(...warnDays);
-      const maxQtyWarn = Math.max(...qtyMult);
       const todayStr = new Date().toISOString().slice(0, 10);
 
       // Run expiry + quantity queries in parallel
@@ -441,7 +411,6 @@ async function handleAction(
         .eq("is_ngoai_khoa", true)
         .eq("loai_bv", "Công")
         .gt("so_luong_hd", 0)
-        .gt("avg_daily_3m", 0)
         .gte("thoi_han", todayStr);
       if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
       qq = qq.limit(500);
@@ -455,20 +424,14 @@ async function handleAction(
 
       const quantity: any[] = [];
       for (const it of itemsRaw || []) {
+        const slHd = it.so_luong_hd ?? 1;
         const conLai = it.so_luong_con_lai ?? 0;
-        const avgDaily = it.avg_daily_3m ?? 0;
-        if (avgDaily <= 0) continue;
-        const daysSupply = Math.floor(conLai / avgDaily);
-
-        if (daysSupply <= maxQtyWarn) {
-          quantity.push({
-            ...it,
-            days_supply: daysSupply,
-            level: daysSupply <= Math.min(...qtyMult) ? "critical" : "warning",
-          });
-        }
+        const daBan = slHd - conLai;
+        const pct = slHd > 0 ? Math.round((daBan / slHd) * 100) : 0;
+        if (pct <= 80) continue;
+        quantity.push({ ...it, pct_used: pct });
       }
-      quantity.sort((a, b) => a.days_supply - b.days_supply);
+      quantity.sort((a: any, b: any) => b.pct_used - a.pct_used);
 
       return { ok: true, expiry, quantity };
     }
@@ -497,9 +460,7 @@ async function handleAction(
       const cfg: Record<string, any> = {};
       for (const r of cfgResult.data || []) cfg[r.key] = r.value;
       const warnDays = cfg.contract_warn_days || [30, 15];
-      const qtyMult = cfg.quantity_multiplier || [20, 10];
       const maxWarn = Math.max(...warnDays);
-      const maxQtyWarn = Math.max(...qtyMult);
 
       // Build filterMaHdSet from BU/nhom_sp results
       let filterMaHdSet: Set<string> | null = null;
@@ -539,12 +500,11 @@ async function handleAction(
         .eq("is_ngoai_khoa", true)
         .eq("loai_bv", "Công")
         .gt("so_luong_hd", 0)
-        .gt("avg_daily_3m", 0)
         .gte("thoi_han", today);
       if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
       if (mien) qq = qq.eq("mien", mien);
       if (filterMaHdSet) qq = qq.in("ma_hd", [...filterMaHdSet]);
-      qq = qq.limit(200);
+      qq = qq.limit(500);
 
       const [allContractsRes, rawExpiryRes, itemsRawRes] = await Promise.all([allQ, eq, qq]);
       const allContracts = allContractsRes.data;
@@ -587,7 +547,6 @@ async function handleAction(
         het_han_count: hetHan,
         ky_moi_count: kyMoi,
         max_warn_days: maxWarn,
-        max_qty_warn_days: maxQtyWarn,
         fy_label: fyStart.slice(0, 4) + "–" + fyEnd.slice(0, 4),
         bu_list: buListRes,
         nhom_sp_list: nhomSpList,
