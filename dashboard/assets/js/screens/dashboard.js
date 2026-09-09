@@ -79,22 +79,14 @@
                     var daBan = slHd - conLai;
                     var pct = Math.min(Math.round((daBan / slHd) * 100), 100);
                     var badgeBg = pct >= 90 ? "#dc2626" : "#f59e0b";
-                    return el("div", { key: i, style: { padding: "4px 0" } },
-                      el("div", { className: "flex items-center justify-between gap-2" },
-                        el("span", { className: "text-xs", style: { color: "#1c1e21", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, flex: 1 } }, a.ten_hang_hoa),
-                        el("span", {
-                          className: "shrink-0 px-2 py-0.5 rounded-full text-white font-medium",
-                          style: { background: badgeBg, fontSize: "11px" }
-                        }, pct + "%")
-                      ),
-                      el("div", { className: "flex items-center gap-2 mt-1" },
-                        el("div", { style: { flex: 1, height: "4px", background: "#f3f4f6", borderRadius: "2px", overflow: "hidden" } },
-                          el("div", { style: { width: pct + "%", height: "100%", background: badgeBg, borderRadius: "2px" } })
-                        ),
-                        el("span", { className: "shrink-0 text-xs", style: { color: "#9ca3af", minWidth: "60px", textAlign: "right" } },
-                          fmt(conLai) + "/" + fmt(slHd)
-                        )
-                      )
+                    return el("div", { key: i, className: "flex items-center gap-2", style: { padding: "4px 0", fontSize: "12px" } },
+                      el("span", { className: "shrink-0", style: { color: "#65676b", width: "80px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, a.ma_ncc || "—"),
+                      el("span", { style: { flex: 1, color: "#1c1e21", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, a.ten_hang_hoa),
+                      el("span", {
+                        className: "shrink-0 px-2 py-0.5 rounded-full text-white font-medium",
+                        style: { background: badgeBg, fontSize: "11px" }
+                      }, pct + "%"),
+                      el("span", { className: "shrink-0", style: { color: "#9ca3af", minWidth: "70px", textAlign: "right" } }, fmt(conLai) + "/" + fmt(slHd))
                     );
                   })
                 )
