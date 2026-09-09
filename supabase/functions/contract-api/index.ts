@@ -392,6 +392,7 @@ async function handleAction(
       for (const r of cfgRows || []) cfg[r.key] = r.value;
 
       const warnDays = cfg.contract_warn_days || [30, 15];
+      const qtyPct = cfg.quantity_warn_pct ?? 80;
       const maxWarn = Math.max(...warnDays);
       const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -428,12 +429,12 @@ async function handleAction(
         const conLai = it.so_luong_con_lai ?? 0;
         const daBan = slHd - conLai;
         const pct = slHd > 0 ? Math.round((daBan / slHd) * 100) : 0;
-        if (pct <= 80) continue;
+        if (pct <= qtyPct) continue;
         quantity.push({ ...it, pct_used: pct });
       }
       quantity.sort((a: any, b: any) => b.pct_used - a.pct_used);
 
-      return { ok: true, expiry, quantity };
+      return { ok: true, expiry, quantity, quantity_warn_pct: qtyPct };
     }
 
     // ── dashboard-summary ────────────────────────────────────────────────
@@ -460,6 +461,7 @@ async function handleAction(
       const cfg: Record<string, any> = {};
       for (const r of cfgResult.data || []) cfg[r.key] = r.value;
       const warnDays = cfg.contract_warn_days || [30, 15];
+      const qtyPct = cfg.quantity_warn_pct ?? 80;
       const maxWarn = Math.max(...warnDays);
 
       // Build filterMaHdSet from BU/nhom_sp results
@@ -534,7 +536,7 @@ async function handleAction(
         const conLai = it.so_luong_con_lai ?? 0;
         const daBan = slHd - conLai;
         const pct = slHd > 0 ? Math.round((daBan / slHd) * 100) : 0;
-        if (pct <= 80) continue;
+        if (pct <= qtyPct) continue;
         quantityAlerts.push({ ...it, pct_used: pct });
       }
       quantityAlerts.sort((a: any, b: any) => b.pct_used - a.pct_used);
@@ -552,6 +554,7 @@ async function handleAction(
         nhom_sp_list: nhomSpList,
         expiry_alerts: expiryAlerts,
         quantity_alerts: quantityAlerts,
+        quantity_warn_pct: qtyPct,
       };
     }
 

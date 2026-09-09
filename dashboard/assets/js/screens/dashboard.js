@@ -183,9 +183,9 @@
               emptyMsg: "Không có hợp đồng nào sắp hết hạn"
             }),
             el(QuantityTable, {
-              title: "SP đã sử dụng >80% thầu",
+              title: "SP đã sử dụng >" + (data.quantity_warn_pct || 80) + "% thầu",
               alerts: quantityAlerts,
-              emptyMsg: "Không có sản phẩm nào sử dụng >80%"
+              emptyMsg: "Không có sản phẩm nào vượt ngưỡng"
             })
           )
         )

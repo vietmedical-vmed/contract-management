@@ -100,6 +100,18 @@
                 className: "w-full px-3 py-2 rounded-lg border text-sm mb-4", style: { borderColor: "#dadde1" },
                 placeholder: "VD: 30, 15",
               }),
+              h("label", { className: "block text-sm font-medium mb-1", style: { color: "#1c1e21" } }, "Cảnh báo mức sử dụng thầu (%)"),
+              h("p", { className: "text-xs mb-2", style: { color: "#65676b" } }, "Cảnh báo khi SP đã sử dụng vượt ngưỡng này"),
+              h("input", {
+                type: "number",
+                value: config.quantity_warn_pct ?? 80,
+                onChange: e => {
+                  setConfig(prev => ({ ...prev, quantity_warn_pct: Number(e.target.value) }));
+                  setSuccess("");
+                },
+                className: "w-full max-w-[120px] px-3 py-2 rounded-lg border text-sm mb-4", style: { borderColor: "#dadde1" },
+                min: 1, max: 100,
+              }),
               h("button", {
                 onClick: handleSave, disabled: saving,
                 className: "px-5 py-2 rounded-lg text-white font-semibold text-sm transition",
