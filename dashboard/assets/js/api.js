@@ -29,8 +29,21 @@
     else sessionStorage.setItem(C.USER_STORAGE_KEY, json);
   }
 
+  const _cache = new Map();
+  const CACHE_TTL = 60000;
+  const NO_CACHE_ACTIONS = new Set(["login", "change-password", "sync-invoices", "update-config"]);
+
   async function api(action, payload) {
     const isLogin = action === "login";
+    const cacheable = !NO_CACHE_ACTIONS.has(action);
+
+    var cacheKey;
+    if (cacheable) {
+      cacheKey = action + "|" + JSON.stringify(payload || {});
+      var cached = _cache.get(cacheKey);
+      if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+    }
+
     const fnName = isLogin ? C.FN_LOGIN_NAME : C.FN_API_NAME;
     const url = `${C.SUPABASE_URL}/functions/v1/${fnName}`;
     const body = isLogin
@@ -52,8 +65,12 @@
       if (data.error === "unauthorized") clearToken();
       throw new Error(data.error || data.message || `HTTP ${res.status}`);
     }
+
+    if (cacheable) _cache.set(cacheKey, { data: data, ts: Date.now() });
     return data;
   }
 
-  window.CONTRACT_API = { getToken, setToken, clearToken, getUser, setUser, api };
+  function clearApiCache() { _cache.clear(); }
+
+  window.CONTRACT_API = { getToken, setToken, clearToken, getUser, setUser, api, clearApiCache };
 })();
