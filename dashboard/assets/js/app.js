@@ -9,7 +9,6 @@
   const NAV = [
     { path: "/dashboard",  label: "Tổng quan" },
     { path: "/contracts",  label: "Hợp đồng" },
-    { path: "/config",     label: "Cấu hình", roles: ["admin"] },
   ];
 
   const initials = (u) => {
@@ -19,6 +18,36 @@
     const s = parts.length >= 2 ? parts[0][0] + parts[parts.length - 1][0] : src.slice(0, 2);
     return s.toUpperCase();
   };
+
+  function SyncBtn() {
+    const [syncing, setSyncing] = useState(false);
+    const [msg, setMsg] = useState(null);
+
+    async function handleSync() {
+      setSyncing(true);
+      setMsg(null);
+      try {
+        const res = await api("sync-invoices", {});
+        setMsg({ ok: true, text: "Đồng bộ xong! " + (res.updated || 0) + " dòng." });
+      } catch (err) {
+        setMsg({ ok: false, text: err.message });
+      } finally {
+        setSyncing(false);
+      }
+    }
+
+    return h("div", { className: "relative" },
+      h("button", {
+        onClick: handleSync, disabled: syncing,
+        className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition " +
+          (syncing ? "text-slate-400 border-slate-200" : "text-slate-700 border-slate-300 hover:bg-slate-50"),
+      }, h("span", null, "⟳"), syncing ? "Đang đồng bộ..." : "Đồng bộ dữ liệu"),
+      msg && h("div", {
+        className: "absolute right-0 top-full mt-1 whitespace-nowrap text-xs px-2 py-1 rounded shadow-lg z-10",
+        style: { background: msg.ok ? "#dcfce7" : "#fee2e2", color: msg.ok ? "#16a34a" : "#dc2626" },
+      }, msg.text),
+    );
+  }
 
   function Shell({ user, onLogout }) {
     const path = R.useRoute();
@@ -94,6 +123,14 @@
             },
               h("option", { value: "" }, "Nhóm SP: tất cả"),
               nhomSpOptions.map(k => h("option", { key: k, value: k }, k))
+            ),
+            user.role === "admin" && h("div", { className: "flex items-center gap-2 ml-auto" },
+              h(SyncBtn),
+              h("button", {
+                onClick: () => R.navigate("/config"),
+                className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition " +
+                  (path === "/config" ? "text-blue-600 border-blue-300 bg-blue-50" : "text-slate-700 border-slate-300 hover:bg-slate-50"),
+              }, h("span", null, "⚙"), "Cấu hình"),
             ),
           ),
           h("nav", { className: "flex items-center gap-5 md:gap-6 pt-2.5 overflow-x-auto overflow-y-hidden border-t border-slate-200" },

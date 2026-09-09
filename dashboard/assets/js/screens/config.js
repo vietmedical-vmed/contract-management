@@ -97,44 +97,6 @@
         )
       ),
 
-      // Sync section
-      el("div", { className: "bg-white rounded-xl shadow-sm p-6" },
-        el("h2", { className: "text-lg font-bold mb-1", style: { color: "#1c1e21" } }, "Đồng bộ dữ liệu"),
-        el("p", { className: "text-sm mb-4", style: { color: "#65676b" } },
-          "Cập nhật số lượng bán thực tế từ bảng hóa đơn. Thường chạy tự động hàng tuần."
-        ),
-        el(SyncButton)
-      )
-    );
-  }
-
-  function SyncButton() {
-    const [syncing, setSyncing] = useState(false);
-    const [result, setResult] = useState(null);
-
-    async function handleSync() {
-      setSyncing(true);
-      setResult(null);
-      try {
-        const res = await api("sync-invoices", {});
-        setResult({ ok: true, msg: "Đồng bộ thành công! " + (res.updated || 0) + " dòng cập nhật." });
-      } catch (err) {
-        setResult({ ok: false, msg: err.message });
-      } finally {
-        setSyncing(false);
-      }
-    }
-
-    return el("div", null,
-      el("button", {
-        onClick: handleSync, disabled: syncing,
-        className: "px-4 py-2 rounded-lg text-sm font-medium border transition",
-        style: { borderColor: "#dadde1", color: syncing ? "#9ca3af" : "#1c1e21" }
-      }, syncing ? "Đang đồng bộ..." : "Đồng bộ ngay"),
-      result && el("p", {
-        className: "text-sm mt-2",
-        style: { color: result.ok ? "#16a34a" : "#dc2626" }
-      }, result.msg)
     );
   }
 
