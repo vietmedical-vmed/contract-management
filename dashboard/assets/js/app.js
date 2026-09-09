@@ -39,8 +39,8 @@
     return h("div", { className: "relative" },
       h("button", {
         onClick: handleSync, disabled: syncing,
-        className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition " +
-          (syncing ? "text-slate-400 border-slate-200" : "text-slate-700 border-slate-300 hover:bg-slate-50"),
+        className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition " +
+          (syncing ? "bg-blue-300 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"),
       }, h("span", null, "⟳"), syncing ? "Đang đồng bộ..." : "Đồng bộ dữ liệu"),
       msg && h("div", {
         className: "absolute right-0 top-full mt-1 whitespace-nowrap text-xs px-2 py-1 rounded shadow-lg z-10",
@@ -109,14 +109,16 @@
                   setConfig(prev => ({ ...prev, quantity_warn_pct: Number(e.target.value) }));
                   setSuccess("");
                 },
-                className: "w-full max-w-[120px] px-3 py-2 rounded-lg border text-sm mb-4", style: { borderColor: "#dadde1" },
+                className: "w-full max-w-[120px] px-3 py-2 rounded-lg border text-sm", style: { borderColor: "#dadde1" },
                 min: 1, max: 100,
               }),
-              h("button", {
-                onClick: handleSave, disabled: saving,
-                className: "px-5 py-2 rounded-lg text-white font-semibold text-sm transition",
-                style: { background: saving ? "#93c5fd" : "#1877f2" },
-              }, saving ? "Đang lưu..." : "Lưu"),
+              h("div", { className: "mt-4" },
+                h("button", {
+                  onClick: handleSave, disabled: saving,
+                  className: "px-5 py-2 rounded-lg text-white font-semibold text-sm transition",
+                  style: { background: saving ? "#93c5fd" : "#1877f2" },
+                }, saving ? "Đang lưu..." : "Lưu"),
+              ),
             ),
       ),
     );
@@ -202,7 +204,7 @@
               h(SyncBtn),
               h("button", {
                 onClick: () => setShowConfig(true),
-                className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition text-slate-700 border-slate-300 hover:bg-slate-50",
+                className: "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition bg-blue-500 hover:bg-blue-600 text-white",
               }, h("span", null, "⚙"), "Cấu hình"),
             ),
           ),
