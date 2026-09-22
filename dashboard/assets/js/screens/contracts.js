@@ -31,12 +31,14 @@
 
   function ExpandedRow({ maHd, colSpan }) {
     const [items, setItems] = useState([]);
+    const [fyList, setFyList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
       api("contract-detail", { ma_hd: maHd })
         .then(res => {
+          setFyList(res.fy_list || []);
           var sorted = (res.items || []).slice().sort(function (a, b) {
             var ta = a.so_luong_hd > 0 ? (a.so_luong_hd - (a.so_luong_con_lai || 0)) / a.so_luong_hd : 0;
             var tb = b.so_luong_hd > 0 ? (b.so_luong_hd - (b.so_luong_con_lai || 0)) / b.so_luong_hd : 0;
@@ -48,6 +50,12 @@
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
     }, [maHd]);
+
+    var baseHeaders = ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu"];
+    var fyHeaders = fyList.map(function (f) { return "SL bán " + f.label; });
+    var tailHeaders = ["SL bán", "Còn lại", "Tiến độ"];
+    var allHeaders = baseHeaders.concat(fyHeaders).concat(tailHeaders);
+    var centerHeaders = ["#", "Đơn giá", "SL thầu", "SL bán", "Còn lại"].concat(fyHeaders);
 
     return el("tr", null,
       el("td", { colSpan, className: "p-0" },
@@ -61,33 +69,46 @@
                 : el("table", { className: "w-full text-xs" },
                     el("thead", null,
                       el("tr", { style: { borderBottom: "1px solid #e5e7eb" } },
-                        ["#", "Mã chung", "Mã NCC", "Tên hàng hóa", "Đơn giá", "SL thầu", "SL bán", "Còn lại", "Tiến độ"].map(h =>
-                          el("th", {
+                        allHeaders.map(function (h) {
+                          return el("th", {
                             key: h,
                             className: "px-2 py-1.5 font-medium whitespace-nowrap " +
-                              (["#", "Đơn giá", "SL thầu", "SL bán", "Còn lại"].includes(h) ? "text-center" : "text-left"),
-                            style: { color: "#65676b" }
-                          }, h)
-                        )
+                              (centerHeaders.includes(h) ? "text-center" : "text-left"),
+                            style: { color: h.startsWith("SL bán FY") ? "#2563eb" : "#65676b" }
+                          }, h);
+                        })
                       )
                     ),
                     el("tbody", null,
-                      items.map((it, i) => {
-                        const conLai = it.so_luong_con_lai || 0;
+                      items.map(function (it, i) {
+                        var conLai = it.so_luong_con_lai || 0;
+                        var fySold = it.fy_sold || {};
+                        var baseCells = [
+                          el("td", { key: "n", className: "px-2 py-1.5 text-center text-gray-400" }, i + 1),
+                          el("td", { key: "mc", className: "px-2 py-1.5 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
+                          el("td", { key: "mn", className: "px-2 py-1.5 whitespace-nowrap" }, it.ma_ncc || "—"),
+                          el("td", { key: "th", className: "px-2 py-1.5 max-w-[220px] truncate" }, it.ten_hang_hoa || "—"),
+                          el("td", { key: "dg", className: "px-2 py-1.5 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
+                          el("td", { key: "sl", className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_hd)),
+                        ];
+                        var fyCells = fyList.map(function (f) {
+                          var key = "fy" + (f.fy % 100);
+                          var val = fySold[key] || 0;
+                          return el("td", {
+                            key: key,
+                            className: "px-2 py-1.5 text-center",
+                            style: { color: val > 0 ? "#2563eb" : "#9ca3af" }
+                          }, fmt(val));
+                        });
+                        var tailCells = [
+                          el("td", { key: "sb", className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_da_ban || 0)),
+                          el("td", { key: "cl", className: "px-2 py-1.5 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
+                          el("td", { key: "pg", className: "px-2 py-1.5" }, it.is_bv_tu ? el("span", { className: "text-gray-400" }, "—") : progressBar(conLai, it.so_luong_hd)),
+                        ];
                         return el("tr", {
                           key: it.id || i,
                           style: { borderBottom: "1px solid #f0f2f5" }
-                        },
-                          el("td", { className: "px-2 py-1.5 text-center text-gray-400" }, i + 1),
-                          el("td", { className: "px-2 py-1.5 whitespace-nowrap font-medium" }, it.ma_chung || "—"),
-                          el("td", { className: "px-2 py-1.5 whitespace-nowrap" }, it.ma_ncc || "—"),
-                          el("td", { className: "px-2 py-1.5 max-w-[220px] truncate" }, it.ten_hang_hoa || "—"),
-                          el("td", { className: "px-2 py-1.5 text-center whitespace-nowrap" }, fmtMoney(it.don_gia)),
-                          el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_hd)),
-                          el("td", { className: "px-2 py-1.5 text-center" }, fmt(it.so_luong_da_ban || 0)),
-                          el("td", { className: "px-2 py-1.5 text-center font-medium" }, it.is_bv_tu ? "—" : fmt(conLai)),
-                          el("td", { className: "px-2 py-1.5" }, it.is_bv_tu ? el("span", { className: "text-gray-400" }, "—") : progressBar(conLai, it.so_luong_hd))
-                        );
+                        }, baseCells.concat(fyCells).concat(tailCells));
                       })
                     )
                   ),

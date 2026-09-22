@@ -270,14 +270,33 @@ async function handleAction(
         return { ok: false, error: "no permission" };
       }
 
-      const { data: items, error: iErr } = await admin
-        .from("contract_items_remaining_view")
-        .select("*")
-        .eq("ma_hd", ma_hd)
-        .order("id", { ascending: true });
+      const [{ data: items, error: iErr }, { data: fySoldRaw }] = await Promise.all([
+        admin.from("contract_items_remaining_view").select("*").eq("ma_hd", ma_hd).order("id", { ascending: true }),
+        contract.so_hd ? admin.rpc("fn_sold_by_fy", { p_so_hd: contract.so_hd }) : Promise.resolve({ data: [] }),
+      ]);
       if (iErr) return { ok: false, error: iErr.message };
 
-      return { ok: true, contract, items };
+      const fySold: Record<string, Record<number, number>> = {};
+      for (const r of fySoldRaw || []) {
+        if (!fySold[r.ma_chung]) fySold[r.ma_chung] = {};
+        fySold[r.ma_chung][r.fy] = r.sold;
+      }
+
+      const getFy = (d: string) => { const dt = new Date(d); return dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1; };
+      const fyStart = getFy(contract.ngay_ky);
+      const fyEnd = getFy(contract.thoi_han);
+      const fyList: number[] = [];
+      for (let y = fyStart; y <= fyEnd; y++) fyList.push(y);
+
+      const itemsWithFy = (items || []).map((it: any) => ({
+        ...it,
+        fy_sold: fyList.reduce((acc: Record<string, number>, fy: number) => {
+          acc["fy" + (fy % 100)] = fySold[it.ma_chung]?.[fy] || 0;
+          return acc;
+        }, {}),
+      }));
+
+      return { ok: true, contract, items: itemsWithFy, fy_list: fyList.map(y => ({ fy: y, label: "FY" + (y % 100) })) };
     }
 
     // ── export-contracts ─────────────────────────────────────────────────
