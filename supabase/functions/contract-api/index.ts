@@ -243,7 +243,12 @@ async function handleAction(
 
       if (search) {
         const s = sanitizeSearch(search);
-        if (s) q = q.or(`ma_hd.ilike.%${s}%,so_hd.ilike.%${s}%,ten_kh.ilike.%${s}%`);
+        if (s) {
+          const words = s.split(/\s+/).filter(w => w.length > 0);
+          for (const w of words) {
+            q = q.or(`ma_hd.ilike.%${w}%,so_hd.ilike.%${w}%,ten_kh.ilike.%${w}%,ma_kh.ilike.%${w}%`);
+          }
+        }
       }
 
       q = q.order("status_order", { ascending: true }).order("days_remaining", { ascending: true }).order("ngay_ky", { ascending: true }).range(from, to);
@@ -393,6 +398,7 @@ async function handleAction(
           thoi_han: c.thoi_han,
           ten_ps: c.ten_ps,
           ma_chung: it.ma_chung,
+          ma_ncc: it.ma_ncc,
           ten_hang_hoa: it.ten_hang_hoa,
           don_gia: it.don_gia,
           nhom_sp: lookupNhom(it),

@@ -197,10 +197,10 @@
 
           var headers = [
             "Loại BV", "Tên Bệnh viện", "Số hợp đồng", "Ngày ký hđ", "Ngày hết hạn",
-            "Thời hạn HĐ", "Sale phụ trách", "Mã chung", "Tên chung",
+            "Thời hạn HĐ", "Sale phụ trách", "Mã chung", "Mã NCC", "Tên chung",
             "Đơn giá", "Phân loại", "SL trúng thầu", "Sử dụng sd", "Quota Còn lại"
           ];
-          var colWidths = [8, 36, 31, 13, 15, 13, 19, 13, 43, 16, 16, 15, 13, 15];
+          var colWidths = [8, 36, 31, 13, 15, 13, 19, 13, 16, 43, 16, 16, 15, 13, 15];
           var font12 = { name: "Calibri", size: 12 };
           var headerFont = { name: "Calibri", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
           var headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4472C4" } };
@@ -224,10 +224,10 @@
               r.loai_bv || "", r.ten_kh || "", r.so_hd || "",
               parseLocalDate(r.ngay_ky), parseLocalDate(r.thoi_han),
               { formula: 'IF(E' + rn + '<TODAY(),"hết hạn","còn hạn")' },
-              r.ten_ps || "", r.ma_chung || "", r.ten_hang_hoa || "",
+              r.ten_ps || "", r.ma_chung || "", r.ma_ncc || "", r.ten_hang_hoa || "",
               r.don_gia || 0, r.nhom_sp || "",
               r.so_luong_hd || 0, r.so_luong_da_ban || 0,
-              { formula: "L" + rn + "-M" + rn }
+              { formula: "M" + rn + "-N" + rn }
             ]);
             row.eachCell({ includeEmpty: true }, function (cell, colNum) {
               cell.font = font12;
@@ -237,10 +237,10 @@
                 cell.alignment = { horizontal: "center" };
               } else if (colNum === 6) {
                 cell.alignment = { horizontal: "center" };
-              } else if (colNum === 10) {
+              } else if (colNum === 11) {
                 cell.numFmt = "#,##0";
                 cell.alignment = { horizontal: "right" };
-              } else if (colNum >= 12 && colNum <= 14) {
+              } else if (colNum >= 13 && colNum <= 15) {
                 cell.numFmt = "#,##0";
                 cell.alignment = { horizontal: "right" };
               }
