@@ -476,12 +476,13 @@ async function handleAction(
       const today = now.toISOString().slice(0, 10);
 
       // Phase 1: run independent queries in parallel
-      const [cfgResult, buMaHds, nhomMaHds, buListRes, nhomSpList] = await Promise.all([
+      const [cfgResult, buMaHds, nhomMaHds, buListRes, nhomSpList, lastInvRes] = await Promise.all([
         admin.from("contract_alert_config").select("key, value"),
         bu ? resolveBu(admin, bu) : Promise.resolve(null),
         nhom_sp ? resolveNhomSp(admin, nhom_sp) : Promise.resolve(null),
         getBuList(),
         getNhomSpList(admin, bu),
+        admin.schema("app_contract").from("hoa_don_bovattu").select("ngay_tai_lieu").order("ngay_tai_lieu", { ascending: false }).limit(1),
       ]);
 
       const cfg: Record<string, any> = {};
@@ -567,6 +568,8 @@ async function handleAction(
       }
       quantityAlerts.sort((a: any, b: any) => b.pct_used - a.pct_used);
 
+      const lastInvoiceDate = lastInvRes.data?.[0]?.ngay_tai_lieu || null;
+
       return {
         ok: true,
         total_contracts: conHan + sapHet + hetHan + kyMoi,
@@ -581,6 +584,7 @@ async function handleAction(
         expiry_alerts: expiryAlerts,
         quantity_alerts: quantityAlerts,
         quantity_warn_pct: qtyPct,
+        last_invoice_date: lastInvoiceDate,
       };
     }
 

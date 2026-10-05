@@ -153,6 +153,11 @@
         })
       ),
 
+      // Last invoice date
+      data.last_invoice_date && el("div", { className: "text-xs text-right", style: { color: "#9ca3af", marginTop: "-8px" } },
+        "Dữ liệu bán hàng cập nhật đến: " + new Date(data.last_invoice_date).toLocaleDateString("vi-VN")
+      ),
+
       // Miền tabs + Alert rows
       el("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden" },
         el("div", { className: "flex border-b", style: { borderColor: "#dadde1" } },
