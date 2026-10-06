@@ -53,11 +53,19 @@ type Session = {
   exp: number;
 };
 
+// So sánh constant-time để không lộ chữ ký qua thời gian phản hồi.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 async function verifyToken(token: string, secret: string): Promise<Session | null> {
   if (!token || typeof token !== "string" || !token.includes(".")) return null;
   const [p, sig] = token.split(".");
   const expected = b64url(await hmac(secret, p));
-  if (expected !== sig) return null;
+  if (!timingSafeEqual(expected, sig)) return null;
   try {
     const payload = JSON.parse(new TextDecoder().decode(b64urlDecode(p))) as Session;
     if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
@@ -660,7 +668,7 @@ Deno.serve(async (req) => {
     .select("active")
     .eq("username", session.username)
     .maybeSingle();
-  if (userErr) return json({ ok: false, error: userErr.message }, 500);
+  if (userErr) return json({ ok: false, error: "server_error" }, 500);
   if (!dbUser || dbUser.active === false) return json({ ok: false, error: "unauthorized" }, 401);
 
   const perm = getPermission(session);
