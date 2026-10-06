@@ -654,6 +654,15 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
+  // Token còn hạn chưa đủ: tài khoản bị khoá (shared.users.active = false) phải mất quyền ngay.
+  const { data: dbUser, error: userErr } = await admin
+    .schema("shared").from("users")
+    .select("active")
+    .eq("username", session.username)
+    .maybeSingle();
+  if (userErr) return json({ ok: false, error: userErr.message }, 500);
+  if (!dbUser || dbUser.active === false) return json({ ok: false, error: "unauthorized" }, 401);
+
   const perm = getPermission(session);
 
   try {

@@ -93,7 +93,8 @@ Deno.serve(async (req) => {
     return json({ ok: true, changed: true });
   }
 
-  const exp = Math.floor(Date.now() / 1000) + 8 * 60 * 60;
+  // 2h như sale_target-login: token ký bằng TOKEN_SECRET dùng chung, các app khác cũng chấp nhận.
+  const exp = Math.floor(Date.now() / 1000) + 2 * 60 * 60;
   const token = await signToken(
     {
       username: user.username,
