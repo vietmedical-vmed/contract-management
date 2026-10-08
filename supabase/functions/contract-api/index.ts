@@ -632,7 +632,8 @@ async function handleAction(
 
       const { data, error } = await admin.rpc("fn_sync_sold_snapshot", { p_avg_months: avgMonths });
       if (error) return { ok: false, error: "sync failed: " + error.message };
-      return { ok: true, updated: data };
+      const { data: nkCount } = await admin.rpc("fn_refresh_ngoai_khoa");
+      return { ok: true, updated: data, ngoai_khoa_refreshed: nkCount ?? 0 };
     }
 
     default:
