@@ -81,9 +81,16 @@ const MIEN_NORM: Record<string, string> = {
 
 type Permission = {
   canWrite: boolean;
-  filterMien: string | null;
+  filterMien: string[] | null;
   role: string;
 };
+
+// users.mien có thể là nhiều miền "MB, MT" (area_manager). BOTH/ALL/rỗng = không giới hạn miền.
+function mienList(raw: string): string[] | null {
+  const list = String(raw || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  if (!list.length || list.some((m) => m.toUpperCase() === "BOTH" || m.toUpperCase() === "ALL")) return null;
+  return [...new Set(list.map((m) => MIEN_NORM[m] ?? m))];
+}
 
 function getPermission(session: Session): Permission {
   switch (session.role) {
@@ -93,8 +100,7 @@ function getPermission(session: Session): Permission {
     case "product_manager":
       return { canWrite: false, filterMien: null, role: session.role };
     default: {
-      const m = MIEN_NORM[session.mien] ?? session.mien ?? null;
-      return { canWrite: false, filterMien: m, role: session.role };
+      return { canWrite: false, filterMien: mienList(session.mien), role: session.role };
     }
   }
 }
@@ -235,7 +241,7 @@ async function handleAction(
         .select("*", { count: "exact" })
         .eq("is_ngoai_khoa", true);
 
-      if (perm.filterMien) q = q.eq("mien", perm.filterMien);
+      if (perm.filterMien) q = q.in("mien", perm.filterMien);
       if (mien) q = q.eq("mien", mien);
       if (filterMaHds) q = q.in("ma_hd", filterMaHds);
 
@@ -279,7 +285,7 @@ async function handleAction(
         .maybeSingle();
       if (cErr || !contract) return { ok: false, error: cErr?.message || "not_found" };
 
-      if (perm.filterMien && contract.mien !== perm.filterMien) {
+      if (perm.filterMien && !perm.filterMien.includes(contract.mien)) {
         return { ok: false, error: "no permission" };
       }
 
@@ -347,7 +353,7 @@ async function handleAction(
         .eq("is_ngoai_khoa", true)
         .limit(5000);
 
-      if (perm.filterMien) q = q.eq("mien", perm.filterMien);
+      if (perm.filterMien) q = q.in("mien", perm.filterMien);
       if (mien) q = q.eq("mien", mien);
       if (filterMaHds) q = q.in("ma_hd", filterMaHds);
 
@@ -438,7 +444,7 @@ async function handleAction(
         .gte("days_remaining", 0)
         .lte("days_remaining", maxWarn)
         .order("days_remaining", { ascending: true });
-      if (perm.filterMien) eq = eq.eq("mien", perm.filterMien);
+      if (perm.filterMien) eq = eq.in("mien", perm.filterMien);
 
       let qq = admin
         .from("contract_items_remaining_view")
@@ -447,7 +453,7 @@ async function handleAction(
         .eq("loai_bv", "Công")
         .gt("so_luong_hd", 0)
         .gte("thoi_han", todayStr);
-      if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
+      if (perm.filterMien) qq = qq.in("mien", perm.filterMien);
       qq = qq.limit(500);
 
       const [{ data: expiryRaw }, { data: itemsRaw }] = await Promise.all([eq, qq]);
@@ -517,7 +523,7 @@ async function handleAction(
         .eq("is_ngoai_khoa", true)
         .or(`and(thoi_han.gte.${fyStart},ngay_ky.lt.${fyStart}),ngay_ky.gte.${fyStart}`)
         .limit(5000);
-      if (perm.filterMien) allQ = allQ.eq("mien", perm.filterMien);
+      if (perm.filterMien) allQ = allQ.in("mien", perm.filterMien);
       if (mien) allQ = allQ.eq("mien", mien);
 
       let eq = admin
@@ -528,7 +534,7 @@ async function handleAction(
         .lte("days_remaining", maxWarn)
         .order("days_remaining", { ascending: true })
         .limit(filterMaHdSet ? 500 : 10);
-      if (perm.filterMien) eq = eq.eq("mien", perm.filterMien);
+      if (perm.filterMien) eq = eq.in("mien", perm.filterMien);
       if (mien) eq = eq.eq("mien", mien);
 
       let qq = admin
@@ -538,7 +544,7 @@ async function handleAction(
         .eq("loai_bv", "Công")
         .gt("so_luong_hd", 0)
         .gte("thoi_han", today);
-      if (perm.filterMien) qq = qq.eq("mien", perm.filterMien);
+      if (perm.filterMien) qq = qq.in("mien", perm.filterMien);
       if (mien) qq = qq.eq("mien", mien);
       if (filterMaHdSet) qq = qq.in("ma_hd", [...filterMaHdSet]);
       qq = qq.limit(500);
