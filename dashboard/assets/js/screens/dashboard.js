@@ -131,6 +131,12 @@
     var quantityAlerts = data.quantity_alerts || [];
 
     return el("div", { className: "space-y-4" },
+      // Last invoice date
+      data.last_invoice_date && el("div", { className: "text-xs", style: { color: "#9ca3af" } },
+        "Dữ liệu bán hàng cập nhật đến: ",
+        el("span", { className: "font-bold", style: { color: "#1c1e21" } }, new Date(data.last_invoice_date).toLocaleDateString("vi-VN"))
+      ),
+
       // KPI cards
       el("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" },
         [
@@ -151,11 +157,6 @@
             el("div", { className: "text-xs mt-0.5", style: { color: "#9ca3af" } }, c.sub)
           );
         })
-      ),
-
-      // Last invoice date
-      data.last_invoice_date && el("div", { className: "text-xs text-right", style: { color: "#9ca3af", marginTop: "-8px" } },
-        "Dữ liệu bán hàng cập nhật đến: " + new Date(data.last_invoice_date).toLocaleDateString("vi-VN")
       ),
 
       // Miền tabs + Alert rows
